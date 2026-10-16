@@ -35,6 +35,7 @@
 #include "../locks/mutex_lock.h"
 #include "../locks/no_lock.h"
 #include "../locks/peterson_lock.h"
+#include "../locks/peterson_relaxed_lock.h"
 #include "../locks/semaphore_lock.h"
 #include "../locks/tas_spin_lock.h"
 #include "../locks/ticket_lock.h"
@@ -59,8 +60,8 @@ void print_usage() {
     std::fprintf(stderr,
         "Usage: lock_bench --lock NAME [--threads N] [--iters M]\n"
         "                  [--cs empty|short|long] [--runs R] [--pin] [--no-header]\n"
-        "Lock names: none, mutex, peterson, bakery, tas, ttas, ticket,\n"
-        "            semaphore, atomic\n");
+        "Lock names: none, mutex, peterson, peterson_relaxed, bakery, tas, ttas,\n"
+        "            ticket, semaphore, atomic\n");
 }
 
 // Returns true if the options were valid. On error it prints a message.
@@ -125,14 +126,15 @@ bool parse_options(int argc, char** argv, Options& opt) {
 // Creates the lock with the given name. Returns nullptr for an unknown name.
 // "atomic" is not handled here because it uses no lock object at all.
 std::unique_ptr<Lock> create_lock(const std::string& name, int threads) {
-    if (name == "none")      return std::unique_ptr<Lock>(new NoLock(threads));
-    if (name == "mutex")     return std::unique_ptr<Lock>(new MutexLock(threads));
-    if (name == "peterson")  return std::unique_ptr<Lock>(new PetersonLock(threads));
-    if (name == "bakery")    return std::unique_ptr<Lock>(new BakeryLock(threads));
-    if (name == "tas")       return std::unique_ptr<Lock>(new TasSpinLock(threads));
-    if (name == "ttas")      return std::unique_ptr<Lock>(new TtasSpinLock(threads));
-    if (name == "ticket")    return std::unique_ptr<Lock>(new TicketLock(threads));
-    if (name == "semaphore") return std::unique_ptr<Lock>(new SemaphoreLock(threads));
+    if (name == "none")              return std::unique_ptr<Lock>(new NoLock(threads));
+    if (name == "mutex")             return std::unique_ptr<Lock>(new MutexLock(threads));
+    if (name == "peterson")          return std::unique_ptr<Lock>(new PetersonLock(threads));
+    if (name == "peterson_relaxed")  return std::unique_ptr<Lock>(new PetersonRelaxedLock(threads));
+    if (name == "bakery")            return std::unique_ptr<Lock>(new BakeryLock(threads));
+    if (name == "tas")               return std::unique_ptr<Lock>(new TasSpinLock(threads));
+    if (name == "ttas")              return std::unique_ptr<Lock>(new TtasSpinLock(threads));
+    if (name == "ticket")            return std::unique_ptr<Lock>(new TicketLock(threads));
+    if (name == "semaphore")         return std::unique_ptr<Lock>(new SemaphoreLock(threads));
     return nullptr;
 }
 
@@ -311,12 +313,13 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    // Peterson's algorithm is defined for exactly two threads.
-    if (opt.lock_name == "peterson" && opt.threads != 2) {
+    // Both Peterson variants are defined for exactly two threads.
+    if ((opt.lock_name == "peterson" || opt.lock_name == "peterson_relaxed") &&
+        opt.threads != 2) {
         std::fprintf(stderr,
-            "Error: PetersonLock works for exactly 2 threads, but --threads is %d.\n"
+            "Error: %s works for exactly 2 threads, but --threads is %d.\n"
             "       Run it with --threads 2, or use bakery for N threads.\n",
-            opt.threads);
+            opt.lock_name.c_str(), opt.threads);
         return 1;
     }
 
