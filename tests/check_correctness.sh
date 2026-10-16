@@ -1,11 +1,15 @@
 #!/usr/bin/env bash
 # check_correctness.sh
-# Runs every implemented lock with 4 threads and 100000 iterations and fails
-# (non-zero exit status) if any run reports correct=false.
+# Runs every implemented lock with 4 threads (Peterson variants: 2) and
+# 100000 iterations, RUNS times each, and fails (non-zero exit status) if
+# any run reports correct=false.
 #
-# - NoLock ("none") is expected to fail: its result is printed but it does
-#   not affect the pass/fail result.
-# - Peterson only supports 2 threads, so it is run with 2 threads.
+# - NoLock ("none") is expected to fail: its result is printed but does not
+#   affect the pass/fail result.
+# - peterson and peterson_relaxed only support 2 threads.
+# - peterson_relaxed is EXPECTED to be incorrect sometimes (it uses relaxed
+#   ordering intentionally); it is therefore treated like "none" — its result
+#   is printed as INFO and not counted as a failure.
 # - Locks that are still stubs print "NOT IMPLEMENTED" on stderr; they are
 #   reported as SKIP until they are implemented.
 #
@@ -30,18 +34,24 @@ if [ ! -x "$BIN" ]; then
     exit 1
 fi
 
-LOCKS="none mutex peterson bakery tas ttas ticket semaphore atomic"
+# none and peterson_relaxed are expected to be incorrect; listed here so we
+# print INFO instead of FAIL for them.
+EXPECTED_BAD="none peterson_relaxed"
+
+# All lock names to test, in a sensible order.
+LOCKS="none mutex peterson peterson_relaxed bakery tas ttas ticket semaphore atomic"
 FAILED=0
 ERR_FILE=$(mktemp)
 
 for lock in $LOCKS; do
     threads=4
-    if [ "$lock" = "peterson" ]; then
+    # Peterson variants only support exactly 2 threads.
+    if [ "$lock" = "peterson" ] || [ "$lock" = "peterson_relaxed" ]; then
         threads=2
     fi
 
     output=$("$BIN" --lock "$lock" --threads "$threads" --iters "$ITERS" \
-                    --runs "$RUNS" --no-header 2> "$ERR_FILE")
+                    --runs "$RUNS" --no-header 2>"$ERR_FILE")
     status=$?
 
     if [ $status -ne 0 ]; then
@@ -59,10 +69,19 @@ for lock in $LOCKS; do
     # Column 10 of the CSV is "correct". Count the runs where it is false.
     bad_runs=$(echo "$output" | awk -F, '$10 == "false"' | wc -l)
 
-    if [ "$lock" = "none" ]; then
-        echo "INFO  $lock: $bad_runs of $RUNS runs incorrect (expected, not counted)"
+    # Check whether this lock is expected to be incorrect.
+    is_expected_bad=0
+    for bad in $EXPECTED_BAD; do
+        if [ "$lock" = "$bad" ]; then
+            is_expected_bad=1
+            break
+        fi
+    done
+
+    if [ "$is_expected_bad" -eq 1 ]; then
+        echo "INFO  $lock: $bad_runs of $RUNS runs incorrect (expected for this lock)"
     elif [ "$bad_runs" -eq 0 ]; then
-        echo "PASS  $lock ($threads threads)"
+        echo "PASS  $lock ($threads threads, $RUNS runs)"
     else
         echo "FAIL  $lock: $bad_runs of $RUNS runs incorrect"
         FAILED=1
