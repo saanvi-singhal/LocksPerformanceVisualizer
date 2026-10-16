@@ -1,0 +1,12 @@
+# Build folders
+build/
+build-*/
+cmake-build-*/
+
+# Benchmark output (the results/ folder itself is kept via .gitkeep)
+results/raw.csv
+results/graphs/
+
+# Python cache
+__pycache__/
+*.pyc
