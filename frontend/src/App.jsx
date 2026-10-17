@@ -245,6 +245,7 @@ export default function App() {
             theme={theme}
             xLabel="threads"
             format={(v) => shortNumber(v) + " ops/s"}
+            exactFormat={(v) => Math.round(v).toLocaleString("en-US") + " ops/s"}
             highlightX={threadLabel(opThreads)}
             hidden={hiddenLocks}
             onToggle={toggleLock}
@@ -264,6 +265,7 @@ export default function App() {
             xLabel="threads"
             minY={1}
             format={(v) => v.toFixed(v >= 10 ? 0 : 2)}
+            exactFormat={(v) => v.toFixed(4)}
             highlightX={threadLabel(opThreads)}
             hidden={hiddenLocks}
             onToggle={toggleLock}
@@ -277,6 +279,7 @@ export default function App() {
             theme={theme}
             xLabel="critical section"
             format={(v) => shortNumber(v) + " µs"}
+            exactFormat={(v) => v.toFixed(5) + " µs"}
             hidden={hiddenLocks}
             onToggle={toggleLock}
           />

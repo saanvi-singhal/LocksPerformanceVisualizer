@@ -30,9 +30,11 @@ import { LegendSwatch, Marker } from "./Marker.jsx";
 //   onToggle   called with a lock name when its legend entry is clicked
 //   highlightX (optional) x value to mark with a vertical line (the thread
 //              count chosen with the slider)
+//   exactFormat  function value -> string with the exact value, for the
+//              hover tooltip (the table keeps the shorter "format")
 export function LockLineChart({
   rows, locks, colors, theme, xLabel, title, caption, format, minY, missingText, footnote,
-  hidden, onToggle, highlightX,
+  hidden, onToggle, highlightX, exactFormat,
 }) {
   const [showTable, setShowTable] = useState(false);
 
@@ -108,7 +110,7 @@ export function LockLineChart({
               content={
                 <ChartTooltip
                   locks={drawn} colors={colors} theme={theme}
-                  format={format} xLabel={xLabel} missingText={missingText}
+                  format={exactFormat || format} xLabel={xLabel} missingText={missingText}
                 />
               }
             />
@@ -171,7 +173,7 @@ function ChartTooltip({ active, payload, label, locks, colors, theme, format, xL
     .concat(locks.filter((lock) => undefinedFor.includes(lock)));
   return (
     <div className="tooltip">
-      <div className="tooltip-title">{xLabel}: {label}</div>
+      <div className="tooltip-title">{xLabel === "threads" ? label + " threads" : xLabel + ": " + label}</div>
       {entries.map((lock) => (
         <div className="tooltip-row" key={lock}>
           <LegendSwatch
