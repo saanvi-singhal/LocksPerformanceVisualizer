@@ -1,11 +1,13 @@
 // main.cpp
 // The benchmark harness.
 //
-// It starts N threads. Each thread does M times:
+// It starts N threads. Each thread does up to M times:
 //     lock -> increment one shared counter -> busy loop (the "critical
 //     section work") -> unlock
-// and counts how many times it got the lock. After all threads finish we
-// check that the counter equals N x M, and print one CSV line per run.
+// and counts how many times it got the lock. As soon as the first thread
+// has done all M iterations, every thread stops (the "fairness window", see
+// SharedState::stop). After all threads finish we check that the counter
+// equals the sum of the per-thread counts, and print one CSV line per run.
 //
 // Usage:
 //   lock_bench --lock NAME [--threads N] [--iters M] [--cs empty|short|long]
@@ -195,6 +197,16 @@ struct SharedState {
     // time is not included in the measurement.
     std::atomic<bool> start{false};
 
+    // The "fairness window". The first thread to finish its M iterations
+    // sets this flag, and every other thread stops at its next iteration.
+    //
+    // Why: if every thread always ran all M iterations, every thread would
+    // end with exactly M acquisitions, and the fairness ratio would be 1.0
+    // for every lock, even an unfair one. By stopping everybody together,
+    // the per-thread counts show how the lock shared itself out while all
+    // threads were competing for it.
+    std::atomic<bool> stop{false};
+
     long long iters = 0;
     int cs_spins = 0;
     std::vector<PaddedCount> acquisitions;  // one padded slot per thread
@@ -208,6 +220,14 @@ void worker(SharedState* state, int tid) {
     }
 
     for (long long i = 0; i < state->iters; i++) {
+        // Stop if another thread has already finished (see SharedState::stop).
+        // Relaxed is enough: the flag carries no data, it only says "stop",
+        // and seeing it one iteration late does no harm. The join in
+        // run_once() makes all of this thread's writes visible afterwards.
+        if (state->stop.load(std::memory_order_relaxed)) {
+            return;
+        }
+
         if (state->lock == nullptr) {
             // Lock-free reference: one atomic instruction, no lock.
             state->atomic_counter.fetch_add(1);
@@ -222,6 +242,9 @@ void worker(SharedState* state, int tid) {
         // Only this thread writes to its own slot, so no lock is needed.
         state->acquisitions[tid].value++;
     }
+
+    // This thread did all M iterations: tell the others to stop.
+    state->stop.store(true, std::memory_order_relaxed);
 }
 
 // Pins thread number tid to CPU core (tid mod number of cores).
@@ -265,6 +288,8 @@ RunResult run_once(const Options& opt, int run_number) {
     }
 
     // Start the clock, release the threads, and wait for all of them.
+    // The time measured is from the start barrier to the last join; thread
+    // creation happened above and is not included.
     std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
     state.start.store(true);
     for (int tid = 0; tid < opt.threads; tid++) {
@@ -272,8 +297,18 @@ RunResult run_once(const Options& opt, int run_number) {
     }
     std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
 
-    // Correctness check: every increment must have been counted.
-    long long expected = (long long)opt.threads * opt.iters;
+    // Because of the fairness window, threads may stop before M iterations.
+    // So the number of operations actually done is the sum of the per-thread
+    // counts, and we also note whether some thread really reached M.
+    long long sum_acquisitions = 0;
+    bool someone_reached_m = false;
+    for (int tid = 0; tid < opt.threads; tid++) {
+        sum_acquisitions += state.acquisitions[tid].value;
+        if (state.acquisitions[tid].value == opt.iters) {
+            someone_reached_m = true;
+        }
+    }
+
     long long final_count;
     if (opt.lock_name == "atomic") {
         final_count = state.atomic_counter.load();
@@ -287,8 +322,12 @@ RunResult run_once(const Options& opt, int run_number) {
     result.cs = opt.cs;
     result.run = run_number;
     result.total_ms = std::chrono::duration<double, std::milli>(end - begin).count();
-    result.total_ops = expected;
-    result.correct = (final_count == expected);
+    result.total_ops = sum_acquisitions;
+
+    // Correctness check: every increment must have been counted (no lost
+    // updates), and the run must have ended normally with one thread at M.
+    result.correct = (final_count == sum_acquisitions) && someone_reached_m;
+
     for (int tid = 0; tid < opt.threads; tid++) {
         result.acquisitions.push_back(state.acquisitions[tid].value);
     }
