@@ -28,7 +28,9 @@ export function LogLine({ entry, threadColors }) {
     <li className="log-line" value={entry.n}>
       <span className="log-step">#{entry.n}</span>
       <ThreadChip tid={entry.thread} color={threadColors[entry.thread]} />
-      <span className="log-code">line {entry.line}: <code>{entry.code}</code></span>
+      <span className="log-code">
+        {entry.line === null ? "" : "line " + entry.line + ": "}<code>{entry.code}</code>
+      </span>
       <span className="log-explain">{entry.explain}</span>
     </li>
   );

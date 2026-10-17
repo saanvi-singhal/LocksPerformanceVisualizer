@@ -506,6 +506,120 @@ const atomicCounter = {
   unlock: [],
 };
 
+// ---------------------------------------------------------------------------
+// PetersonRelaxedLock: Peterson's algorithm on a simplified model of x86
+// store buffering. EVERY store of this lock (flag, turn and the counter)
+// goes into the thread's own store buffer, and only reaches shared memory
+// when that buffer is flushed (a separate "flush" action). A load reads the
+// thread's own buffer first, then shared memory. With ctx.sc on
+// ("sequentially consistent"), every store is flushed at once.
+// ---------------------------------------------------------------------------
+
+// The CS through the store buffer: the counter store is buffered too.
+const BUFFERED_CS_STEPS = [
+  {
+    code: "tmp = counter",
+    run: (ctx) => {
+      ctx.local.tmp = ctx.load("counter");
+      return { explain: "loads counter = " + ctx.local.tmp + " into its private tmp." };
+    },
+  },
+  {
+    code: "tmp = tmp + 1",
+    run: (ctx) => {
+      ctx.local.tmp = ctx.local.tmp + 1;
+      return { explain: "adds one: its private tmp is now " + ctx.local.tmp + "." };
+    },
+  },
+  {
+    code: "counter = tmp",
+    run: (ctx) => {
+      ctx.store("counter", ctx.local.tmp);
+      return { explain: storeText(ctx, "counter = " + ctx.local.tmp) };
+    },
+  },
+];
+
+// "puts flag[0] = true into its store buffer (not visible yet)" or, with
+// sequential consistency, "stores flag[0] = true (flushed at once)".
+function storeText(ctx, what) {
+  if (ctx.sc) {
+    return "stores " + what + " and flushes it at once (sequentially consistent): everyone can see it.";
+  }
+  return "puts " + what + " into its store buffer: the other thread cannot see it yet.";
+}
+
+const petersonRelaxedLock = {
+  name: "peterson_relaxed",
+  title: "PetersonRelaxedLock",
+  broken: true,
+  storeBuffer: true,  // the page shows the store buffers and flush buttons
+  minThreads: 2,
+  maxThreads: 2,
+  notice: "Each thread's stores wait in its own store buffer. Both threads can set their flag, then read " +
+    "the OTHER flag from shared memory, where it is still false, and both walk in. Turn on " +
+    "\"sequentially consistent\" and every store is flushed at once: then only one thread enters.",
+  // A schedule that makes both threads enter (each entry is one action:
+  // a thread number = one step of that thread, "f1" = flush thread 1).
+  preset: {
+    iterations: 1,
+    actions: ["0", "0", "1", "1", "0", "1"],
+    description: "T0 stores flag[0] and turn, T1 stores flag[1] and turn (all still in the buffers), " +
+      "then T0 and T1 each read the other's flag from shared memory.",
+  },
+  init: () => ({ flag: [false, false], turn: 0 }),
+  lock: [
+    {
+      code: "flag[me] = true",
+      run: (ctx) => {
+        ctx.storeAt("flag", ctx.me, true);
+        return { explain: storeText(ctx, "flag[" + ctx.me + "] = true") };
+      },
+    },
+    {
+      code: "turn = other",
+      run: (ctx) => {
+        ctx.store("turn", ctx.other);
+        return { explain: storeText(ctx, "turn = " + ctx.other) };
+      },
+    },
+    {
+      label: "check_flag",
+      code: "while (flag[other] == true",
+      run: (ctx) => {
+        if (!ctx.loadAt("flag", ctx.other)) {
+          return {
+            goto: "cs",
+            explain: "loads flag[" + ctx.other + "] = false (from shared memory): it thinks the other thread is not " +
+              "interested, so it enters.",
+          };
+        }
+        return { explain: "loads flag[" + ctx.other + "] = true: the other thread wants in too, so it checks turn." };
+      },
+    },
+    {
+      code: "       && turn == other)  spin",
+      run: (ctx) => {
+        const turn = ctx.load("turn");
+        if (turn !== ctx.other) {
+          return { goto: "cs", explain: "loads turn = " + turn + ": it is its own turn, so it enters." };
+        }
+        return { goto: "check_flag", explain: "loads turn = " + turn + ": it is the other thread's turn, so it spins." };
+      },
+    },
+  ],
+  cs: BUFFERED_CS_STEPS,
+  unlock: [
+    {
+      code: "flag[me] = false",
+      run: (ctx) => {
+        ctx.storeAt("flag", ctx.me, false);
+        return { explain: storeText(ctx, "flag[" + ctx.me + "] = false") };
+      },
+    },
+  ],
+};
+
 // All simulated locks, in the order the selector shows them.
 export const LOCK_PROGRAMS = {
   none: noLock,
@@ -515,6 +629,7 @@ export const LOCK_PROGRAMS = {
   ttas: ttasLock,
   ticket: ticketLock,
   peterson: petersonLock,
+  peterson_relaxed: petersonRelaxedLock,
   bakery: bakeryLock,
   atomic: atomicCounter,
 };

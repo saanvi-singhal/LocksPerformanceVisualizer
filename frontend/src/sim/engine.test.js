@@ -6,8 +6,8 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 
 import {
-  createSim, expectedCounter, isFinished, runToEnd, runnableThreads, scheduleStep, step,
-  RANDOM, ROUND_ROBIN, IN_CS, SLEEPING, WAITING,
+  createSim, expectedCounter, flush, isFinished, parseAction, runScript, runToEnd, runnableThreads,
+  scheduleStep, step, RANDOM, ROUND_ROBIN, IN_CS, SLEEPING, WAITING,
 } from "./engine.js";
 import { LOCK_PROGRAMS } from "./programs.js";
 
@@ -94,6 +94,67 @@ test("atomic: the increment is one step and never loses an update", () => {
     assert.equal(sim.shared.counter, 20);
     assert.equal(sim.log.length, 20);   // one step per increment
   }
+});
+
+// ---- PetersonRelaxedLock and the store-buffer model -----------------------
+
+const relaxed = LOCK_PROGRAMS.peterson_relaxed;
+const presetActions = relaxed.preset.actions.map(parseAction);
+
+test("store buffer: a store is invisible to others until flushed, but visible to its own loads", () => {
+  let sim = createSim({ lock: "peterson_relaxed", threads: 2, iterations: 1 });
+  sim = step(sim, 0);                                   // T0: flag[0] = true (buffered)
+  assert.equal(sim.shared.flag[0], false);              // not in shared memory yet
+  assert.deepEqual(sim.threads[0].buffer, [{ name: "flag", index: 0, value: true }]);
+  sim = flush(sim, 0);
+  assert.equal(sim.shared.flag[0], true);               // now it is
+  assert.deepEqual(sim.threads[0].buffer, []);
+
+  // Own loads see own buffered stores: T0 does a whole iteration without
+  // flushing (counter = 1 stays in its buffer), then reads counter again.
+  let own = createSim({ lock: "peterson_relaxed", threads: 2, iterations: 2 });
+  for (let i = 0; i < 7; i++) own = step(own, 0);       // flag, turn, check, read, add, write, unlock
+  for (let i = 0; i < 4; i++) own = step(own, 0);       // flag, turn, check, tmp = counter
+  assert.equal(own.shared.counter, 0);                  // shared memory still says 0
+  assert.equal(own.threads[0].local.tmp, 1);            // but T0 read its own buffered 1
+});
+
+test("PetersonRelaxed: the preset schedule makes both threads enter the critical section", () => {
+  const sim = runScript(createSim({ lock: "peterson_relaxed", threads: 2, iterations: relaxed.preset.iterations }), presetActions);
+  assert.equal(sim.violations.length, 1);
+  assert.deepEqual(sim.violations[0].threads, [0, 1]);
+  assert.equal(sim.violations[0].step, presetActions.length);   // at the last preset step
+  // The report starts at the first buffered store, so it shows the cause.
+  assert.deepEqual(sim.violations[0].lines.map((entry) => entry.n), [1, 2, 3, 4, 5, 6]);
+});
+
+test("PetersonRelaxed: with 'sequentially consistent' on, the same preset lets only one thread in", () => {
+  let sim = runScript(createSim({ lock: "peterson_relaxed", threads: 2, iterations: 1, sc: true }), presetActions);
+  assert.equal(sim.violations.length, 0);
+  sim = runToEnd(sim, ROUND_ROBIN);
+  assert.ok(isFinished(sim));
+  assert.equal(sim.violations.length, 0);
+  assert.equal(sim.shared.counter, 2);
+});
+
+test("PetersonRelaxed with 'sequentially consistent' on never violates over 1000 random seeds", () => {
+  for (let seed = 1; seed <= SEEDS; seed++) {
+    const sim = runToEnd(createSim({ lock: "peterson_relaxed", threads: 2, iterations: 3, seed: seed, sc: true }), RANDOM);
+    assert.ok(isFinished(sim), "seed " + seed + " did not finish");
+    assert.equal(sim.violations.length, 0, "seed " + seed + " violated mutual exclusion");
+    assert.equal(sim.shared.counter, expectedCounter(sim), "seed " + seed + " lost an update");
+  }
+});
+
+test("PetersonRelaxed without it violates in some random runs", () => {
+  let violating = 0;
+  for (let seed = 1; seed <= SEEDS; seed++) {
+    const sim = runToEnd(createSim({ lock: "peterson_relaxed", threads: 2, iterations: 3, seed: seed }), RANDOM);
+    assert.ok(isFinished(sim), "seed " + seed + " did not finish");
+    if (sim.violations.length > 0) violating++;
+  }
+  assert.ok(violating > 0);
+  console.log("  PetersonRelaxed (store buffer, random): " + violating + "/" + SEEDS + " runs violated mutual exclusion");
 });
 
 test("the same seed gives exactly the same run (replay)", () => {

@@ -4,20 +4,22 @@
 // pseudo-code, the shared variables, the threads, the counter and a log.
 //
 // State kept here (plain React state):
-//   settings  lock, threads, iterations, scheduler mode, seed
-//   sim       the simulation state from the engine (replaced on every step)
-//   running   whether auto-run is on; speed = steps per second
-//   script    in a replayed manual run: the thread to run at each step
+//   settings  lock, threads, iterations, scheduler mode, seed, sc
+//   sim       the simulation state from the engine (replaced on every action)
+//   running   whether auto-run is on; speed = actions per second
+//   script    in a replayed run or a preset: the action ({ type, tid }) to
+//             do at each step
 import { useEffect, useRef, useState } from "react";
 
 import { NavBar } from "../components/NavBar.jsx";
 import {
-  getProgram, isFinished, scheduleStep, step, MANUAL, RANDOM, ROUND_ROBIN, DONE, SLEEPING,
+  applyAction, flush, getProgram, isFinished, scheduleStep, step,
+  MANUAL, RANDOM, ROUND_ROBIN, DONE, SLEEPING,
 } from "../sim/engine.js";
 import { LOCK_PROGRAMS } from "../sim/programs.js";
 import { THREAD_COLORS } from "../theme.js";
 import {
-  fixThreads, newSim, replayHash, scriptFromParams, settingsFromParams,
+  fixThreads, newSim, replayHash, scriptFromParams, scriptFromTokens, settingsFromParams,
 } from "../sim-ui/settings.js";
 import { CodePanel } from "../sim-ui/CodePanel.jsx";
 import { StatePanel } from "../sim-ui/StatePanel.jsx";
@@ -62,8 +64,8 @@ export function SimulatorView({ themeName, nav, params }) {
   // Returns the same sim if nothing can run.
   function advance(current) {
     if (script) {
-      const tid = script[current.stepCount];
-      return tid === undefined ? current : step(current, tid);
+      const action = script[current.stepCount];
+      return action === undefined ? current : applyAction(current, action);
     }
     if (settings.mode === MANUAL) return current;
     return scheduleStep(current, settings.mode);
@@ -106,10 +108,32 @@ export function SimulatorView({ themeName, nav, params }) {
     setRunning(false);
   }
 
-  // Manual mode: run one step of thread tid. Choosing by hand ends a replay.
+  // Manual mode: run one step of thread tid, or flush its store buffer.
+  // Choosing by hand ends a replay or preset.
   function runThread(tid) {
     setScript(null);
     setSim(step(sim, tid));
+  }
+
+  function flushThread(tid) {
+    setScript(null);
+    setSim(flush(sim, tid));
+  }
+
+  // Loads the lock's preset schedule (manual mode, from the start). The
+  // "sequentially consistent" setting is kept, so the same schedule can be
+  // tried with it off and on.
+  function loadPreset() {
+    const next = {
+      ...settings,
+      threads: 2,
+      iterations: lock.preset.iterations,
+      mode: MANUAL,
+    };
+    setSettings(next);
+    setSim(newSim(next));
+    setScript(scriptFromTokens(lock.preset.actions));
+    setRunning(false);
   }
 
   // Replay: go to the replay URL. If the URL is already the same (so no
@@ -195,6 +219,25 @@ export function SimulatorView({ themeName, nav, params }) {
             <p className="caption">{lock.title} works for exactly {lock.minThreads} threads.</p>
           )}
 
+          {lock.storeBuffer && (
+            <div className="sim-control-row">
+              <label className="checkbox-inline">
+                <input
+                  type="checkbox"
+                  checked={settings.sc}
+                  onChange={(e) => changeSettings({ sc: e.target.checked })}
+                />
+                Sequentially consistent (flush right after every store)
+              </label>
+              <button type="button" className="sim-button" onClick={loadPreset}>
+                Load the preset schedule
+              </button>
+            </div>
+          )}
+          {lock.storeBuffer && (
+            <p className="caption">Preset: {lock.preset.description} Press Step or Auto-run to play it.</p>
+          )}
+
           <div className="sim-control-row">
             <button type="button" className="sim-button" onClick={() => setSim(advance(sim))} disabled={!canAutoStep || running}>
               Step
@@ -228,7 +271,19 @@ export function SimulatorView({ themeName, nav, params }) {
                   {t.status === SLEEPING ? "T" + t.id + " is asleep" : "Run T" + t.id + " next"}
                 </button>
               ))}
-              {script && <span className="caption">Replaying {script.length} recorded steps: use Step or Auto-run.</span>}
+              {lock.storeBuffer && sim.threads.map((t) => (
+                <button
+                  key={"f" + t.id}
+                  type="button"
+                  className="sim-button thread-button"
+                  style={{ borderColor: threadColors[t.id] }}
+                  disabled={t.buffer.length === 0}
+                  onClick={() => flushThread(t.id)}
+                >
+                  Flush T{t.id}'s buffer ({t.buffer.length})
+                </button>
+              ))}
+              {script && <span className="caption">Playing {script.length} recorded actions: use Step or Auto-run.</span>}
             </div>
           )}
           {settings.mode !== MANUAL && (
@@ -236,6 +291,8 @@ export function SimulatorView({ themeName, nav, params }) {
               {settings.mode === RANDOM
                 ? "The scheduler picks a random runnable thread for each step; the same seed always gives the same run."
                 : "The scheduler gives each runnable thread one step in turn."}
+              {lock.storeBuffer && !settings.sc &&
+                " Flushing a non-empty store buffer counts as one of the choices it can make."}
             </p>
           )}
         </section>
@@ -243,6 +300,16 @@ export function SimulatorView({ themeName, nav, params }) {
         <aside className="sim-notice-box" aria-label="What to notice">
           <h3>What to notice: {lock.title}</h3>
           <p>{lock.notice}</p>
+          {lock.storeBuffer && (
+            <p className="model-note">
+              <strong>This is a simplified model of x86 store buffering.</strong> Each thread's stores wait in
+              its own buffer, oldest first, and reach shared memory only when the buffer is flushed (a
+              separate step here). A thread's loads see its own buffered stores first. Real CPUs drain the
+              buffer on their own within nanoseconds and also have caches, which this model leaves out.
+              "Sequentially consistent" flushes after every store, like the full barrier (an xchg
+              instruction) the compiler emits for memory_order_seq_cst.
+            </p>
+          )}
         </aside>
 
         {latestViolation && (
@@ -260,7 +327,7 @@ export function SimulatorView({ themeName, nav, params }) {
           <CodePanel program={program} sim={sim} threadColors={threadColors} />
           <div className="sim-column">
             <ThreadLanes sim={sim} threadColors={threadColors} showSleeping={lock.sleeps === true} />
-            <StatePanel sim={sim} threadColors={threadColors} />
+            <StatePanel sim={sim} threadColors={threadColors} showBuffers={lock.storeBuffer === true} />
           </div>
         </section>
 

@@ -11,7 +11,8 @@ function show(value) {
   return String(value);
 }
 
-export function StatePanel({ sim, threadColors }) {
+// showBuffers: also show each thread's store buffer (PetersonRelaxedLock).
+export function StatePanel({ sim, threadColors, showBuffers }) {
   const last = sim.log.length > 0 ? sim.log[sim.log.length - 1] : null;
   const changed = last ? last.changed : [];
   const names = Object.keys(sim.shared).filter((name) => name !== "counter");
@@ -30,7 +31,7 @@ export function StatePanel({ sim, threadColors }) {
 
   return (
     <div className="sim-panel">
-      <h3>Shared variables</h3>
+      <h3>{showBuffers ? "Shared memory" : "Shared variables"}</h3>
       {names.length === 0 && <p className="caption">This lock has no shared variables.</p>}
       <dl className="var-list">
         {names.map((name) => {
@@ -74,6 +75,31 @@ export function StatePanel({ sim, threadColors }) {
           );
         })}
       </dl>
+
+      {showBuffers && (
+        <>
+          <h3>Store buffers (not yet in shared memory)</h3>
+          <ul className="buffer-list">
+            {sim.threads.map((t) => {
+              const isChanged = changed.includes("buffer T" + t.id);
+              return (
+                <li
+                  key={t.id + "-" + (isChanged ? sim.stepCount : 0)}
+                  className={isChanged ? "buffer-row changed" : "buffer-row"}
+                >
+                  <ThreadChip tid={t.id} color={threadColors[t.id]} />
+                  {t.buffer.length === 0 && <span className="caption">(empty)</span>}
+                  {t.buffer.map((entry, k) => (
+                    <code key={k} className="buffer-entry">
+                      {(entry.index === null ? entry.name : entry.name + "[" + entry.index + "]") + " = " + entry.value}
+                    </code>
+                  ))}
+                </li>
+              );
+            })}
+          </ul>
+        </>
+      )}
 
       <div className="counter-box">
         <span className="counter-label">counter</span>

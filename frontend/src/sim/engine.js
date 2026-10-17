@@ -97,6 +97,7 @@ export function createSim(options) {
       local: {},           // private variables, e.g. tmp or my_ticket
       finished: 0,         // iterations (lock ... unlock) completed
       enteredAt: 0,        // step number at which it last entered the CS
+      startedAt: 1,        // step number at which it started this iteration
       buffer: [],          // store buffer: [{ name, index, value }], oldest first
     });
   }
@@ -177,6 +178,7 @@ function stepInPlace(sim, tid) {
     me: tid,
     other: 1 - tid,
     n: sim.threadCount,
+    sc: sim.sc,
     local: thread.local,
     // Plain shared memory: reads and writes take effect at once.
     get: (name) => sim.shared[name],
@@ -208,6 +210,9 @@ function stepInPlace(sim, tid) {
 
   sim.stepCount = sim.stepCount + 1;
   sim.lastThread = tid;
+  if (thread.status === IDLE) {
+    thread.startedAt = sim.stepCount;   // first step of a new iteration
+  }
 
   if (result.sleep) {
     // Stay on this line, asleep, until another thread wakes it.
@@ -310,12 +315,13 @@ function flushInPlace(sim, tid) {
 function checkMutualExclusion(sim) {
   const inside = sim.threads.filter((t) => t.status === IN_CS);
   if (inside.length > 1 && !sim.inViolation) {
-    // The log lines from the earliest of these threads entering until now.
-    let firstEntry = sim.stepCount;
+    // The log lines since the earliest of these threads started its
+    // current lock() call (the last VIOLATION_LINES of them).
+    let firstStep = sim.stepCount;
     for (const t of inside) {
-      firstEntry = Math.min(firstEntry, t.enteredAt);
+      firstStep = Math.min(firstStep, t.startedAt);
     }
-    const lines = sim.log.filter((entry) => entry.n >= firstEntry - 1).slice(-VIOLATION_LINES);
+    const lines = sim.log.filter((entry) => entry.n >= firstStep).slice(-VIOLATION_LINES);
     sim.violations.push({
       step: sim.stepCount,
       threads: inside.map((t) => t.id),
@@ -334,8 +340,10 @@ export function runnableThreads(sim) {
   return sim.threads.filter((t) => t.status !== DONE && t.status !== SLEEPING).map((t) => t.id);
 }
 
+// Finished when every thread is done AND every store buffer has been
+// flushed, so the final counter really is in shared memory.
 export function isFinished(sim) {
-  return sim.threads.every((t) => t.status === DONE);
+  return sim.threads.every((t) => t.status === DONE && t.buffer.length === 0);
 }
 
 // The counter value a correct lock must reach.
@@ -417,6 +425,20 @@ export function runToEnd(sim, mode, maxSteps) {
     count++;
   }
   return next;
+}
+
+// Actions as short text, used by presets and replay links:
+//   "2" = one step of thread 2,  "f1" = flush thread 1's store buffer.
+export function parseAction(token) {
+  if (token.startsWith("f")) {
+    return { type: "flush", tid: parseInt(token.slice(1), 10) };
+  }
+  return { type: "step", tid: parseInt(token, 10) };
+}
+
+// The token for a log entry (the opposite of parseAction).
+export function actionToken(entry) {
+  return entry.action === "flush" ? "f" + entry.thread : String(entry.thread);
 }
 
 // Runs a fixed list of actions (a preset or a replayed run).
