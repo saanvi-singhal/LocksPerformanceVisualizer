@@ -1,0 +1,428 @@
+/* styles.css
+   Colours are defined once as variables (tokens) for light mode, and again
+   for dark mode: when the operating system is dark (unless the viewer chose
+   light), or when the viewer chose dark with the toggle. */
+
+:root {
+  color-scheme: light;
+  --page: #f9f9f7;
+  --surface: #fcfcfb;
+  --text: #0b0b0b;
+  --text-secondary: #52514e;
+  --muted: #898781;
+  --grid: #e1e0d9;
+  --border: rgba(11, 11, 11, 0.10);
+  --good: #006300;
+  --bad: #d03b3b;
+  --accent: #2a78d6;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --page: #0d0d0d;
+    --surface: #1a1a19;
+    --text: #f0efec;
+    --text-secondary: #c3c2b7;
+    --muted: #898781;
+    --grid: #2c2c2a;
+    --border: rgba(255, 255, 255, 0.10);
+    --good: #0ca30c;
+    --bad: #e66767;
+    --accent: #3987e5;
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --page: #0d0d0d;
+  --surface: #1a1a19;
+  --text: #f0efec;
+  --text-secondary: #c3c2b7;
+  --muted: #898781;
+  --grid: #2c2c2a;
+  --border: rgba(255, 255, 255, 0.10);
+  --good: #0ca30c;
+  --bad: #e66767;
+  --accent: #3987e5;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--page);
+  color: var(--text);
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  line-height: 1.5;
+}
+
+/* ---- Page layout ---------------------------------------------------- */
+
+.page {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 24px 16px 64px;
+}
+
+section {
+  margin-top: 40px;
+}
+
+h1 {
+  font-size: clamp(1.5rem, 4vw, 2.1rem);
+  line-height: 1.2;
+  margin: 4px 0 12px;
+}
+
+h2 {
+  font-size: 1.3rem;
+  margin: 0 0 12px;
+}
+
+h3 {
+  font-size: 1rem;
+  margin: 0;
+}
+
+code {
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 0.9em;
+}
+
+.eyebrow {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+.lede {
+  max-width: 70ch;
+  color: var(--text-secondary);
+  margin: 0 0 12px;
+}
+
+.caption {
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+  margin: 4px 0 12px;
+  max-width: 80ch;
+}
+
+.footnote {
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  margin: 8px 0 0;
+  max-width: 80ch;
+}
+
+.error {
+  color: var(--bad);
+}
+
+.theme-toggle,
+.link-button {
+  font: inherit;
+  font-size: 0.85rem;
+  color: var(--accent);
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 10px;
+  min-height: 32px;
+  cursor: pointer;
+}
+
+.link-button {
+  margin-top: 8px;
+}
+
+/* ---- Summary tiles ---------------------------------------------------- */
+
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.tile {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px 16px;
+}
+
+.tile-label {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+.tile-value {
+  font-size: 1.6rem;
+  font-weight: 600;
+  margin: 2px 0;
+}
+
+.tile-note {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+/* ---- Lock cards ------------------------------------------------------- */
+
+.lock-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 12px;
+}
+
+.lock-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px 16px;
+}
+
+.lock-card p {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  margin: 6px 0 0;
+}
+
+.lock-card-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.lock-kind {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+/* ---- Filters ---------------------------------------------------------- */
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 20px;
+  align-items: flex-end;
+  margin-bottom: 16px;
+}
+
+.filters label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+.filters label.checkbox {
+  flex-direction: row;
+  align-items: center;
+  min-height: 36px;
+}
+
+.filters select {
+  font: inherit;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 8px;
+  min-height: 36px;
+}
+
+/* ---- Charts ----------------------------------------------------------- */
+
+.chart-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+
+.chart-card {
+  margin: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px;
+  min-width: 0;  /* lets the chart shrink inside the grid on a phone */
+}
+
+/* Plot plus x-axis band, so axis labels are never cut off. */
+.chart-box {
+  width: 100%;
+  height: 340px;
+}
+
+.legend {
+  list-style: none;
+  padding: 0;
+  margin: 8px 0 4px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.legend li {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.swatch {
+  flex: none;
+}
+
+.tooltip {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 0.8rem;
+  color: var(--text);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+}
+
+.tooltip-title {
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.tooltip-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.tooltip-name {
+  color: var(--text-secondary);
+  flex: 1;
+}
+
+.tooltip-value {
+  font-variant-numeric: tabular-nums;
+  margin-left: 12px;
+}
+
+/* ---- Tables ----------------------------------------------------------- */
+
+/* A wide table scrolls inside its own box instead of widening the page. */
+.table-scroll {
+  overflow-x: auto;
+  margin-top: 8px;
+}
+
+.data-table {
+  border-collapse: collapse;
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+  background: var(--surface);
+  width: 100%;
+}
+
+.data-table th,
+.data-table td {
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--grid);
+  text-align: right;
+  white-space: nowrap;
+}
+
+.data-table th[scope="row"],
+.data-table thead th:first-child {
+  text-align: left;
+}
+
+.data-table thead th {
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+.cell-good {
+  color: var(--good);
+}
+
+.cell-bad {
+  color: var(--bad);
+  font-weight: 600;
+}
+
+.cell-expected {
+  color: var(--text-secondary);
+}
+
+.cell-na {
+  color: var(--muted);
+}
+
+/* ---- Machine details -------------------------------------------------- */
+
+.machine {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 8px 24px;
+  margin: 0;
+}
+
+.machine dt {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.machine dd {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+/* ---- Footer ----------------------------------------------------------- */
+
+.footer {
+  margin-top: 48px;
+  padding-top: 20px;
+  border-top: 1px solid var(--grid);
+}
+
+.footer h2 {
+  font-size: 1rem;
+}
+
+.footer-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 8px 24px;
+  margin: 0 0 8px;
+}
+
+.footer-list dt {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.footer-list dd {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.footer-table {
+  width: auto;
+}
+
+/* ---- Small screens ---------------------------------------------------- */
+
+@media (max-width: 600px) {
+  .chart-card {
+    padding: 12px 8px;
+  }
+
+  .chart-box {
+    height: 280px;
+  }
+}
