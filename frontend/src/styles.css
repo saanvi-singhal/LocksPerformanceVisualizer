@@ -111,6 +111,13 @@ code {
   max-width: 80ch;
 }
 
+.footnote {
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  margin: 8px 0 0;
+  max-width: 80ch;
+}
+
 .error {
   color: var(--bad);
 }

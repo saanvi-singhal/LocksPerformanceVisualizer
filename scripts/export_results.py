@@ -77,9 +77,11 @@ def main():
     medians = []
     for (lock, threads, cs), rows in grouped:
         ops = rows["ops_per_sec"].median()
-        # An empty fairness value means a thread got no acquisitions at all
-        # (the ratio is infinite). Those runs are skipped; if EVERY run was
-        # like that, there is no fairness value (null in the JSON).
+        # An empty fairness value means some thread got no acquisitions in
+        # that run, so max/min is not defined. With the short runs at 2 x cores
+        # threads this happens when some threads had not started yet when the
+        # first thread finished (a start-up effect). Those runs are skipped;
+        # if EVERY run was like that, there is no fairness value (null).
         fairness = rows["fairness_ratio"].dropna()
         fairness_median = fairness.median() if len(fairness) > 0 else None
         medians.append({
@@ -89,8 +91,8 @@ def main():
             "runs": int(len(rows)),
             "ops_per_sec": clean(ops, 0),
             "fairness_ratio": clean(fairness_median, 4),
-            # How many runs had a thread with zero acquisitions.
-            "starved_runs": int(rows["fairness_ratio"].isna().sum()),
+            # How many runs had no defined fairness (a thread with zero acquisitions).
+            "fairness_undefined_runs": int(rows["fairness_ratio"].isna().sum()),
             # Average wall time per lock acquisition, in microseconds.
             "us_per_op": clean(1e6 / ops, 5),
         })

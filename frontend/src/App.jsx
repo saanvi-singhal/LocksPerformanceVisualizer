@@ -85,11 +85,17 @@ export default function App() {
     return t === oversubThreads ? t + "*" : String(t);
   }
 
-  // Rows for the charts against thread count.
+  // Rows for the charts against thread count. row.undefinedFor lists the
+  // locks that WERE run at this point but have no value (fairness not
+  // defined), as opposed to locks that were not run there at all.
   function rowsByThreads(field, locks) {
     return threadCounts.map((t) => {
-      const row = { x: threadLabel(t) };
-      for (const lock of locks) row[lock] = value(lock, t, cs, field);
+      const row = { x: threadLabel(t), undefinedFor: [] };
+      for (const lock of locks) {
+        row[lock] = value(lock, t, cs, field);
+        const wasRun = index[lock + "/" + t + "/" + cs] !== undefined;
+        if (wasRun && row[lock] == null) row.undefinedFor.push(lock);
+      }
       return row;
     });
   }
@@ -205,11 +211,11 @@ export default function App() {
           <LockLineChart
             title={"Fairness vs threads (critical section: " + cs + ")"}
             caption={"Busiest thread's acquisitions ÷ least busy thread's, log scale. 1 = perfectly fair. " +
-              "Broken locks are never shown here. A missing point (\"starved\" in the table) means that in " +
-              "every run some thread got no acquisitions at all, so the ratio is infinite. At " +
-              threadLabel(oversubThreads) + " this is partly a start-up effect: with only 1000 iterations a fast " +
-              "lock can finish before every thread has started. " + oversubNote}
-            missingText="starved"
+              "Broken locks are never shown here. A missing point is shown as \"n/a\" in the tooltip and table. " +
+              oversubNote}
+            missingText="n/a"
+            footnote={"n/a: Some threads had not started when the first thread finished, so fairness is not " +
+              "defined for this run. This is a start-up effect, not evidence of starvation."}
             rows={rowsByThreads("fairness_ratio", workingLocks)}
             locks={workingLocks}
             colors={colors}

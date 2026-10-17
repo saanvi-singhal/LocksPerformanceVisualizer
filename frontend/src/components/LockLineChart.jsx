@@ -22,14 +22,18 @@ import { LegendSwatch, Marker } from "./Marker.jsx";
 //   xLabel, yLabel, title, caption   text
 //   format     function value -> string, for tooltip and table
 //   minY       optional lowest value the log axis must show (e.g. 1 for fairness)
-//   missingText  what the table shows for a missing value (default "–")
+//   missingText  text for a point that was run but has no value; such points
+//              are listed in row.undefinedFor. A point that was not run at
+//              all always shows "–".
+//   footnote   text shown under the chart when such a point exists
 export function LockLineChart({
-  rows, locks, colors, theme, xLabel, title, caption, format, minY, missingText,
+  rows, locks, colors, theme, xLabel, title, caption, format, minY, missingText, footnote,
 }) {
   const [showTable, setShowTable] = useState(false);
 
   // Only draw locks that have at least one value in these rows.
   const present = locks.filter((lock) => rows.some((row) => row[lock] != null));
+  const hasUndefined = rows.some((row) => (row.undefinedFor || []).some((lock) => present.includes(lock)));
 
   const values = [];
   for (const row of rows) {
@@ -83,7 +87,12 @@ export function LockLineChart({
             />
             <Tooltip
               cursor={{ stroke: theme.axis, strokeWidth: 1 }}
-              content={<ChartTooltip locks={present} colors={colors} theme={theme} format={format} xLabel={xLabel} />}
+              content={
+                <ChartTooltip
+                  locks={present} colors={colors} theme={theme}
+                  format={format} xLabel={xLabel} missingText={missingText}
+                />
+              }
             />
             {present.map((lock) => (
               <Line
@@ -103,11 +112,13 @@ export function LockLineChart({
         </ResponsiveContainer>
       </div>
 
+      {hasUndefined && footnote && <p className="footnote">{footnote}</p>}
+
       <button className="link-button" onClick={() => setShowTable(!showTable)}>
         {showTable ? "Hide table" : "Show as table"}
       </button>
       {showTable && (
-        <DataTable rows={rows} locks={present} xLabel={xLabel} format={format} missingText={missingText || "–"} />
+        <DataTable rows={rows} locks={present} xLabel={xLabel} format={format} missingText={missingText} />
       )}
     </figure>
   );
@@ -130,13 +141,16 @@ function DotFor({ lock, p, colors, theme, size }) {
   );
 }
 
-// Tooltip: the x value, then every lock's value, largest first.
-function ChartTooltip({ active, payload, label, locks, colors, theme, format, xLabel }) {
+// Tooltip: the x value, then every lock's value, largest first. Locks that
+// were run here but have no value come last, shown with missingText.
+function ChartTooltip({ active, payload, label, locks, colors, theme, format, xLabel, missingText }) {
   if (!active || !payload || payload.length === 0) return null;
   const row = payload[0].payload;
+  const undefinedFor = missingText ? (row.undefinedFor || []) : [];
   const entries = locks
     .filter((lock) => row[lock] != null)
-    .sort((a, b) => row[b] - row[a]);
+    .sort((a, b) => row[b] - row[a])
+    .concat(locks.filter((lock) => undefinedFor.includes(lock)));
   return (
     <div className="tooltip">
       <div className="tooltip-title">{xLabel}: {label}</div>
@@ -149,11 +163,19 @@ function ChartTooltip({ active, payload, label, locks, colors, theme, format, xL
             dashed={BROKEN_LOCKS.includes(lock)}
           />
           <span className="tooltip-name">{lockLabel(lock)}</span>
-          <span className="tooltip-value">{format(row[lock])}</span>
+          <span className="tooltip-value">{row[lock] == null ? missingText : format(row[lock])}</span>
         </div>
       ))}
     </div>
   );
+}
+
+// Text for one table cell: the value, missingText if the point was run but
+// has no value, or "–" if it was not run at all.
+function cellText(row, lock, format, missingText) {
+  if (row[lock] != null) return format(row[lock]);
+  if (missingText && (row.undefinedFor || []).includes(lock)) return missingText;
+  return "–";
 }
 
 // The same numbers as the chart, as a table (one row per lock).
@@ -172,7 +194,7 @@ function DataTable({ rows, locks, xLabel, format, missingText }) {
             <tr key={lock}>
               <th scope="row">{lockLabel(lock)}</th>
               {rows.map((row) => (
-                <td key={row.x}>{row[lock] == null ? missingText : format(row[lock])}</td>
+                <td key={row.x}>{cellText(row, lock, format, missingText)}</td>
               ))}
             </tr>
           ))}
