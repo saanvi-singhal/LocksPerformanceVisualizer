@@ -8,6 +8,7 @@ VIT BCSE303L Operating Systems, Module 4 (Concurrency). The full plan is in `doc
 
 - Linux, g++ 11 or newer, CMake 3.16 or newer
 - Python 3 with pandas and matplotlib (only for the graphs)
+- Node.js 20.19 or newer (or 22.12 or newer) with npm (only for the dashboard in `frontend/`)
 
 ## Build
 
@@ -95,51 +96,80 @@ Thread counts are compared with ops/s, not total time: every thread has the same
 
 ## Demo
 
-The dashboard in `frontend/` (Vite + React + Recharts) shows the results from `frontend/public/data/results.json`. That file is committed, so the dashboard works without re-running the benchmark. Node.js 20 or newer is needed for the frontend.
+The dashboard in `frontend/` (Vite + React + Recharts) has two views, switched with the tabs at the top:
 
-**Start the dashboard with the committed results (one command, from the repository root):**
+- **Results** (`#/results`): the **measured** benchmark results, read from `frontend/public/data/results.json`. That file is committed, so the dashboard works without re-running the benchmark.
+- **Simulator** (`#/simulator`): a step-by-step **illustration** of each lock algorithm, plus a "Cores and oversubscription" mode (`#/simulator?view=cores`). Nothing in it is measured.
+
+### Quick start: dashboard only, with the committed results
 
 ```sh
-npm --prefix frontend install && npm --prefix frontend run dev
+scripts/demo.sh
 ```
 
-Then open http://localhost:5173/.
+It installs the frontend dependencies the first time, starts the dashboard and prints the two URLs (Results and Simulator). Stop it with Ctrl+C.
 
-**Full pipeline, from source to dashboard:**
+### From a fresh clone to the dashboard
 
 ```sh
-# 1. Build the C++ benchmark
+# 0. Get the code (the dev branch has everything)
+git clone https://github.com/saanvi-singhal/LocksPerformanceVisualizer.git
+cd LocksPerformanceVisualizer
+git checkout dev
+
+# 1. Build the C++ benchmark (Release, -O2 -Wall -Wextra) and check it
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build
+tests/check_correctness.sh        # every real lock must PASS
+tests/run_tsan.sh                 # optional: ThreadSanitizer on every lock (a few minutes)
 
-# 2. Check correctness (and optionally ThreadSanitizer)
-tests/check_correctness.sh
-tests/run_tsan.sh
-
-# 3. Run the sweep (about 15-20 minutes; delete the old data first)
+# 2. Run the sweep. Close other applications first (browser, IDE, video):
+#    anything else using the CPU distorts the measurements.
+#    On the 16-thread Ryzen 7 7435HS used here it took about 10 minutes;
+#    expect longer on a machine with fewer cores.
 rm -f results/raw.csv
 scripts/run_all.sh
 
-# 4. Make the PNG graphs and export the data for the dashboard
-python3 scripts/plot.py
-python3 scripts/export_results.py
+# 3. Make the PNG graphs and export the results for the dashboard
+python3 scripts/plot.py           # writes results/graphs/*.png
+python3 scripts/export_results.py # writes frontend/public/data/results.json
 
-# 5. Start the dashboard (development server, http://localhost:5173/)
+# 4. Start the dashboard: http://localhost:5173/
 cd frontend
 npm install
 npm run dev
-
-# 5b. Or build the production version and preview it (http://localhost:4173/)
-npm run build
-npm run preview
 ```
 
-**Suggested demo order for the viva:**
+Production build instead of the development server: `npm run build` then `npm run preview` (http://localhost:4173/). Engine tests of the Simulator: `npm test`.
 
-1. **NoLock fails.** `./build/lock_bench --lock none --threads 4 --iters 100000` reports `correct=false`: increments are lost. Optionally show the ThreadSanitizer report: `./build-tsan/lock_bench --lock none --threads 4 --iters 1000`.
-2. **Mutex passes.** `./build/lock_bench --lock mutex --threads 4 --iters 100000` reports `correct=true`. Run `tests/check_correctness.sh` to show every real lock passing.
-3. **Peterson: relaxed vs sequentially consistent.** `./build/lock_bench --lock peterson --threads 2 --iters 100000 --runs 5` is always correct; `--lock peterson_relaxed` usually reports `correct=false`. Explain the x86 store buffer: a store can wait in it while a later load goes ahead, and seq_cst adds the barrier (an `xchg`) that prevents this.
-4. **The graphs.** Open the dashboard: correctness table, then throughput vs threads (spinlocks vs mutex, the collapse of ticket and bakery at 32\*), fairness (ticket and bakery near 1, TAS and TTAS unfair), time per operation vs critical-section length, and the oversubscription chart.
+Re-run `scripts/export_results.py` after every new sweep, otherwise the dashboard still shows the old data. Also update `results/machine.txt` when the sweep runs on a different machine.
+
+### Suggested demo order for the viva
+
+1. **Simulator, NoLock race.** Simulator tab, lock "NoLock", scheduler "round robin", press Step: both threads walk into the critical section, the red banner appears, and two threads read the same counter value, so one increment is lost.
+2. **Simulator, Peterson in manual mode.** Lock "PetersonLock", scheduler "manual": click Run T0, T0, T1, T1 (both set their flag and `turn`), then T0, T1, T0, T1. Both want in and both reach the `turn` check; `turn` is 0 because T1 wrote it last, so T0 enters and T1 spins: the thread that wrote `turn` last waits.
+3. **Simulator, relaxed Peterson: store buffer vs sequentially consistent.** Lock "PetersonRelaxedLock", "Load the preset schedule", Auto-run: the stores wait in the store buffers, both threads read the other's flag as `false` and both enter. Tick "Sequentially consistent", load the preset again: now only one thread enters.
+4. **Simulator, ticket vs semaphore on 4 cores.** "Cores and oversubscription", "Preset: ticket vs semaphore, 8 threads on 4 cores", Auto-run: spinning ticket threads fill the cores while the thread holding the lock waits for one; sleeping semaphore threads leave the cores free.
+5. **The real benchmark in the terminal.** `./build/lock_bench --lock none --threads 4 --iters 100000` reports `correct=false` (lost increments); `./build/lock_bench --lock mutex --threads 4 --iters 100000` reports `correct=true`. Optionally `./build/lock_bench --lock peterson_relaxed --threads 2 --iters 100000 --runs 5`: the relaxed version fails on real x86 hardware too.
+6. **Results: the measured graphs.** Throughput vs threads (and the collapse of ticket and bakery at 32\*), fairness (ticket and bakery near 1, TAS and TTAS unfair), then the oversubscription chart. Each lock card has "See how it works", and the Simulator has "See measured results", to jump between the two views.
+
+## Measured vs simulated
+
+| Measured (the real benchmark on one machine) | Simulated (illustration only) |
+| --- | --- |
+| `results/raw.csv`, `results/graphs/`, `results/machine.txt`, `results/sweep.txt` | Everything on the **Simulator** tab, both modes |
+| `frontend/public/data/results.json` (exported from `raw.csv`) | `frontend/src/sim/` (the engine, the lock programs, its tests) |
+| Everything on the **Results** tab: summary tiles, comparison sentence, correctness table, throughput, fairness, time per operation, oversubscription, machine details | Every number shown in the Simulator: counters, violations, "acquisitions per 100 rounds" |
+| `tests/check_correctness.sh` and `tests/run_tsan.sh` output | The numbers printed by `npm test` (they describe the model, not the hardware) |
+
+The Simulator labels every screen "Illustration of the algorithm, not measured data" (the cores mode: "Illustration: this is a simplified scheduler model, not measured data"), and the two views are only connected by links.
+
+## Limitations
+
+- **One machine.** All measurements come from one laptop (AMD Ryzen 7 7435HS, 8 cores / 16 threads, frequency boost on, no thread pinning). Other CPUs, especially ARM or with more sockets, can give different numbers; the oversubscribed point (32 threads) also uses fewer iterations (1000) than the others (100000).
+- **Simplified scheduler model.** The Simulator's cores mode gives each running thread one step per round and rotates the cores every round. Real schedulers use time slices, so a thread that is next in line can be off its core for much longer: the measured collapse of the ticket and bakery locks is far larger than the model shows, and in the model TAS slows down about as much as the ticket lock.
+- **Simplified store-buffer model.** The relaxed Peterson demo models x86 store buffering only: each thread's stores wait in its own buffer, oldest first, and the whole buffer is flushed in one step. Real CPUs drain the buffer on their own within nanoseconds, have caches, and other architectures (ARM, POWER) allow even more reordering.
+- **Bakery differs from the textbook version.** `BakeryLock` pads each `choosing` and `number` entry to its own 64-byte cache line to avoid false sharing. This is an optimisation over Lamport's original; the algorithm is unchanged, but it measured 1.9x to 2.8x faster at 4 to 16 threads than the unpadded version.
 
 ## Layout
 
@@ -147,9 +177,10 @@ npm run preview
 src/locks/    one header per lock, plus lock.h (the common interface)
 src/bench/    main.cpp (harness), metrics.h / metrics.cpp (fairness, CSV)
 tests/        check_correctness.sh, run_tsan.sh
-scripts/      run_all.sh, plot.py, export_results.py
+scripts/      run_all.sh, plot.py, export_results.py, demo.sh
 results/      machine.txt, sweep.txt (commit, date, iterations of the sweep); raw.csv and graphs/ (generated, not in git)
-frontend/     dashboard (Vite + React); public/data/results.json is generated but committed
+frontend/     dashboard (Vite + React): Results view (measured) and Simulator (src/sim/, illustration);
+              public/data/results.json is generated but committed
 docs/         plan, report, slides
 ```
 
