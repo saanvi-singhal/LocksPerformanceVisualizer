@@ -139,6 +139,45 @@ code {
   margin-top: 8px;
 }
 
+/* Light/dark switch: a small track with a knob that slides right when on. */
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-secondary);
+}
+
+.theme-toggle-track {
+  position: relative;
+  width: 32px;
+  height: 18px;
+  border-radius: 9px;
+  background: var(--grid);
+  border: 1px solid var(--border);
+}
+
+.theme-toggle-knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--text-secondary);
+  transition: transform 0.15s;
+}
+
+.theme-toggle[aria-checked="true"] .theme-toggle-knob {
+  transform: translateX(14px);
+  background: var(--accent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .theme-toggle-knob {
+    transition: none;
+  }
+}
+
 /* ---- Summary tiles ---------------------------------------------------- */
 
 .tiles {

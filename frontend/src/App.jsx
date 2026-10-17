@@ -15,6 +15,7 @@ import { CompareLocks } from "./components/CompareLocks.jsx";
 import { CountUp } from "./components/CountUp.jsx";
 import { Reveal } from "./components/Reveal.jsx";
 import { NavBar } from "./components/NavBar.jsx";
+import { useThemeChoice } from "./hooks.js";
 
 // Views shown as tabs in the navigation bar.
 const TABS = [
@@ -58,7 +59,7 @@ export default function App() {
     }
   }
 
-  const themeName = useTheme();
+  const [themeName, setThemeName] = useThemeChoice();
   const theme = THEME_COLORS[themeName];
   const colors = {};
   for (const lock of LOCK_ORDER) {
@@ -146,7 +147,12 @@ export default function App() {
 
   return (
     <>
-    <NavBar tabs={TABS} activeTab="results" sections={RESULTS_SECTIONS} right={<ThemeToggle />} />
+    <NavBar
+      tabs={TABS}
+      activeTab="results"
+      sections={RESULTS_SECTIONS}
+      right={<ThemeToggle theme={themeName} onChange={setThemeName} />}
+    />
     <main className="page">
       <header className="hero">
         <p className="eyebrow">VIT BCSE303L Operating Systems · Module 4 · Concurrency</p>
@@ -448,60 +454,22 @@ function summaryTiles(data, value, workingLocks, threads, cs, threadLabel) {
   ];
 }
 
-// Follows the operating system's light/dark setting, unless the viewer
-// picked one with the toggle (stored as data-theme on <html>).
-function useTheme() {
-  const media = window.matchMedia("(prefers-color-scheme: dark)");
-  const [systemDark, setSystemDark] = useState(media.matches);
-  const [forced, setForced] = useState(document.documentElement.dataset.theme || null);
-
-  useEffect(() => {
-    const onMedia = (e) => setSystemDark(e.matches);
-    media.addEventListener("change", onMedia);
-    // The toggle changes data-theme; watch for that too.
-    const observer = new MutationObserver(() => {
-      setForced(document.documentElement.dataset.theme || null);
-    });
-    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
-    return () => {
-      media.removeEventListener("change", onMedia);
-      observer.disconnect();
-    };
-  }, []);
-
-  if (forced === "light" || forced === "dark") return forced;
-  return systemDark ? "dark" : "light";
-}
-
-// Button that cycles: system -> light -> dark -> system.
-function ThemeToggle() {
-  const [mode, setMode] = useState(() => {
-    let saved = null;
-    try {
-      saved = window.localStorage.getItem("theme");
-    } catch (e) {
-      saved = null;  // storage can be blocked; just follow the system
-    }
-    return saved === "light" || saved === "dark" ? saved : "system";
-  });
-
-  useEffect(() => {
-    if (mode === "system") {
-      delete document.documentElement.dataset.theme;
-    } else {
-      document.documentElement.dataset.theme = mode;
-    }
-    try {
-      window.localStorage.setItem("theme", mode);
-    } catch (e) {
-      // Ignore: the choice just will not be remembered.
-    }
-  }, [mode]);
-
-  const next = { system: "light", light: "dark", dark: "system" };
+// A light/dark switch for the navigation bar. role="switch" tells screen
+// readers it is an on/off control ("Dark mode, on").
+function ThemeToggle({ theme, onChange }) {
+  const dark = theme === "dark";
   return (
-    <button className="theme-toggle" onClick={() => setMode(next[mode])}>
-      Theme: {mode}
+    <button
+      type="button"
+      role="switch"
+      aria-checked={dark}
+      className="theme-toggle"
+      onClick={() => onChange(dark ? "light" : "dark")}
+    >
+      <span className="theme-toggle-track" aria-hidden="true">
+        <span className="theme-toggle-knob" />
+      </span>
+      Dark mode
     </button>
   );
 }
