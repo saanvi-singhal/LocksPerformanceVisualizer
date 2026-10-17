@@ -26,18 +26,23 @@ import { LegendSwatch, Marker } from "./Marker.jsx";
 //              are listed in row.undefinedFor. A point that was not run at
 //              all always shows "–".
 //   footnote   text shown under the chart when such a point exists
+//   hidden     locks the viewer switched off (shared by all charts)
+//   onToggle   called with a lock name when its legend entry is clicked
 export function LockLineChart({
   rows, locks, colors, theme, xLabel, title, caption, format, minY, missingText, footnote,
+  hidden, onToggle,
 }) {
   const [showTable, setShowTable] = useState(false);
 
-  // Only draw locks that have at least one value in these rows.
+  // Locks that have at least one value in these rows get a legend entry;
+  // of those, the ones not switched off are drawn.
   const present = locks.filter((lock) => rows.some((row) => row[lock] != null));
-  const hasUndefined = rows.some((row) => (row.undefinedFor || []).some((lock) => present.includes(lock)));
+  const drawn = present.filter((lock) => !hidden.includes(lock));
+  const hasUndefined = rows.some((row) => (row.undefinedFor || []).some((lock) => drawn.includes(lock)));
 
   const values = [];
   for (const row of rows) {
-    for (const lock of present) values.push(row[lock]);
+    for (const lock of drawn) values.push(row[lock]);
   }
   const axis = logTicks(values, minY);
 
@@ -48,16 +53,24 @@ export function LockLineChart({
         {caption && <p className="caption">{caption}</p>}
       </figcaption>
 
-      <ul className="legend">
+      {/* Each legend entry is a button: click to hide or show that lock on every chart. */}
+      <ul className="legend" aria-label="Locks (click to hide or show)">
         {present.map((lock) => (
           <li key={lock}>
-            <LegendSwatch
-              shape={LOCK_MARKERS[lock]}
-              color={colors[lock]}
-              surface={theme.surface}
-              dashed={BROKEN_LOCKS.includes(lock)}
-            />
-            {lockLabel(lock)}
+            <button
+              type="button"
+              className="legend-item"
+              aria-pressed={!hidden.includes(lock)}
+              onClick={() => onToggle(lock)}
+            >
+              <LegendSwatch
+                shape={LOCK_MARKERS[lock]}
+                color={colors[lock]}
+                surface={theme.surface}
+                dashed={BROKEN_LOCKS.includes(lock)}
+              />
+              {lockLabel(lock)}
+            </button>
           </li>
         ))}
       </ul>
@@ -89,12 +102,12 @@ export function LockLineChart({
               cursor={{ stroke: theme.axis, strokeWidth: 1 }}
               content={
                 <ChartTooltip
-                  locks={present} colors={colors} theme={theme}
+                  locks={drawn} colors={colors} theme={theme}
                   format={format} xLabel={xLabel} missingText={missingText}
                 />
               }
             />
-            {present.map((lock) => (
+            {drawn.map((lock) => (
               <Line
                 key={lock}
                 dataKey={lock}
@@ -118,7 +131,7 @@ export function LockLineChart({
         {showTable ? "Hide table" : "Show as table"}
       </button>
       {showTable && (
-        <DataTable rows={rows} locks={present} xLabel={xLabel} format={format} missingText={missingText} />
+        <DataTable rows={rows} locks={drawn} xLabel={xLabel} format={format} missingText={missingText} />
       )}
     </figure>
   );

@@ -273,8 +273,31 @@ code {
 
 .legend li {
   display: flex;
+}
+
+/* A legend entry is a button that hides or shows its lock. */
+.legend-item {
+  display: flex;
   align-items: center;
   gap: 4px;
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  border-radius: 6px;
+  padding: 4px 6px;
+  min-height: 32px;
+  cursor: pointer;
+}
+
+.legend-item:hover {
+  background: var(--grid);
+}
+
+/* Switched off: faded and struck through, so it is clear it can come back. */
+.legend-item[aria-pressed="false"] {
+  opacity: 0.45;
+  text-decoration: line-through;
 }
 
 .swatch {

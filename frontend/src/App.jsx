@@ -27,6 +27,17 @@ export default function App() {
   const [opThreads, setOpThreads] = useState(16);
   const [showBroken, setShowBroken] = useState(false);
 
+  // Locks switched off by clicking them in a legend. Shared by all charts,
+  // so hiding a lock in one chart hides it in every chart.
+  const [hiddenLocks, setHiddenLocks] = useState([]);
+  function toggleLock(lock) {
+    if (hiddenLocks.includes(lock)) {
+      setHiddenLocks(hiddenLocks.filter((l) => l !== lock));
+    } else {
+      setHiddenLocks(hiddenLocks.concat([lock]));
+    }
+  }
+
   const themeName = useTheme();
   const theme = THEME_COLORS[themeName];
   const colors = {};
@@ -107,7 +118,7 @@ export default function App() {
   });
 
   const oversubRows = data.oversubscription.rows.filter(
-    (row) => row.cs === cs && (showBroken || !BROKEN_LOCKS.includes(row.lock))
+    (row) => row.cs === cs && (showBroken || !BROKEN_LOCKS.includes(row.lock)) && !hiddenLocks.includes(row.lock)
   );
 
   const tiles = summaryTiles(data, value, workingLocks, baseThreads);
@@ -195,7 +206,13 @@ export default function App() {
             <input type="checkbox" checked={showBroken} onChange={(e) => setShowBroken(e.target.checked)} />
             Show broken locks
           </label>
+          {hiddenLocks.length > 0 && (
+            <button type="button" className="link-button" onClick={() => setHiddenLocks([])}>
+              Show all locks ({hiddenLocks.length} hidden)
+            </button>
+          )}
         </div>
+        <p className="caption">Click a lock in any legend to hide or show it on every chart.</p>
 
         <div className="chart-grid">
           <LockLineChart
@@ -207,6 +224,8 @@ export default function App() {
             theme={theme}
             xLabel="threads"
             format={(v) => shortNumber(v) + " ops/s"}
+            hidden={hiddenLocks}
+            onToggle={toggleLock}
           />
           <LockLineChart
             title={"Fairness vs threads (critical section: " + cs + ")"}
@@ -223,6 +242,8 @@ export default function App() {
             xLabel="threads"
             minY={1}
             format={(v) => v.toFixed(v >= 10 ? 0 : 2)}
+            hidden={hiddenLocks}
+            onToggle={toggleLock}
           />
           <LockLineChart
             title={"Time per operation vs critical-section length (" + threadLabel(opThreads) + " threads)"}
@@ -233,6 +254,8 @@ export default function App() {
             theme={theme}
             xLabel="critical section"
             format={(v) => shortNumber(v) + " µs"}
+            hidden={hiddenLocks}
+            onToggle={toggleLock}
           />
         </div>
       </section>
