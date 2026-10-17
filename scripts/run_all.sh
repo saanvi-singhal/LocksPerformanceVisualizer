@@ -64,9 +64,31 @@ if [ "$PIN" = "1" ]; then
 fi
 
 # Write the CSV header only once, when the file does not exist yet.
+# A new data set also gets results/sweep.txt: which commit, when, and how
+# many iterations per thread count, so the results can be traced back.
 mkdir -p results
 if [ ! -f "$OUT" ]; then
     "$BIN" --lock mutex --threads 1 --iters 1 --runs 1 | head -n 1 > "$OUT"
+
+    COMMIT=$(git rev-parse --short HEAD 2>/dev/null || echo unknown)
+    # Mark the commit if the source code has uncommitted changes.
+    if ! git diff --quiet HEAD -- src 2>/dev/null; then
+        COMMIT="$COMMIT (with uncommitted changes in src/)"
+    fi
+    ITER_LIST=""
+    for t in $THREAD_COUNTS; do
+        if [ "$t" -eq "$OVERSUB_THREADS" ]; then
+            ITER_LIST="$ITER_LIST $t=$OVERSUB_ITERS"
+        else
+            ITER_LIST="$ITER_LIST $t=$ITERS"
+        fi
+    done
+    {
+        echo "Commit: $COMMIT"
+        echo "Date: $(date +%Y-%m-%d)"
+        echo "Iterations per thread:$ITER_LIST"
+        echo "Runs per combination: $RUNS"
+    } > results/sweep.txt
 fi
 
 echo "Cores: $CORES, thread counts: $(echo $THREAD_COUNTS), iters: $ITERS" \

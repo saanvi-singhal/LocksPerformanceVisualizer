@@ -264,9 +264,54 @@ export default function App() {
             </div>
           ))}
         </dl>
-        <p className="caption">Data exported {data.generated} from {data.source}.</p>
       </section>
+
+      <SweepFooter sweep={data.sweep} generated={data.generated} source={data.source} />
     </main>
+  );
+}
+
+// Where the data came from: commit, sweep date, iterations per thread count.
+function SweepFooter({ sweep, generated, source }) {
+  const counts = Object.keys(sweep.iterations || {}).sort((a, b) => Number(a) - Number(b));
+  return (
+    <footer className="footer">
+      <h2>About this data</h2>
+      <dl className="footer-list">
+        <div>
+          <dt>Benchmark code</dt>
+          <dd>dev commit <code>{sweep.commit || "unknown"}</code></dd>
+        </div>
+        <div>
+          <dt>Sweep date</dt>
+          <dd>{sweep.date || "unknown"}</dd>
+        </div>
+        <div>
+          <dt>Runs per combination</dt>
+          <dd>{sweep.runs || "unknown"} (median shown)</dd>
+        </div>
+        <div>
+          <dt>Exported</dt>
+          <dd>{generated} from <code>{source}</code></dd>
+        </div>
+      </dl>
+      <div className="table-scroll">
+        <table className="data-table footer-table">
+          <thead>
+            <tr>
+              <th scope="col">threads</th>
+              {counts.map((t) => <th scope="col" key={t}>{t}</th>)}
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">iterations per thread</th>
+              {counts.map((t) => <td key={t}>{sweep.iterations[t].toLocaleString("en-US")}</td>)}
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </footer>
   );
 }
 

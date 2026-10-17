@@ -148,7 +148,7 @@ src/locks/    one header per lock, plus lock.h (the common interface)
 src/bench/    main.cpp (harness), metrics.h / metrics.cpp (fairness, CSV)
 tests/        check_correctness.sh, run_tsan.sh
 scripts/      run_all.sh, plot.py, export_results.py
-results/      machine.txt; raw.csv and graphs/ (generated, not in git)
+results/      machine.txt, sweep.txt (commit, date, iterations of the sweep); raw.csv and graphs/ (generated, not in git)
 frontend/     dashboard (Vite + React); public/data/results.json is generated but committed
 docs/         plan, report, slides
 ```

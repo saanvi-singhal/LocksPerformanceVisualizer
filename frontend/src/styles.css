@@ -382,6 +382,39 @@ code {
   font-size: 0.9rem;
 }
 
+/* ---- Footer ----------------------------------------------------------- */
+
+.footer {
+  margin-top: 48px;
+  padding-top: 20px;
+  border-top: 1px solid var(--grid);
+}
+
+.footer h2 {
+  font-size: 1rem;
+}
+
+.footer-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 8px 24px;
+  margin: 0 0 8px;
+}
+
+.footer-list dt {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.footer-list dd {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.footer-table {
+  width: auto;
+}
+
 /* ---- Small screens ---------------------------------------------------- */
 
 @media (max-width: 600px) {

@@ -6,6 +6,8 @@ re-running the benchmark. The file contains:
 
   machine           the text of results/machine.txt, plus its "Key: value"
                     lines as a dictionary
+  sweep             from results/sweep.txt: the commit and date of the sweep,
+                    iterations per thread for each thread count, runs
   thread_counts     every thread count in the data, sorted
   cs_lengths        empty, short, long
   medians           one row per (lock, threads, cs): the MEDIAN over the runs
@@ -31,6 +33,7 @@ import pandas as pd
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DEFAULT_CSV = os.path.join(REPO_ROOT, "results", "raw.csv")
 MACHINE_TXT = os.path.join(REPO_ROOT, "results", "machine.txt")
+SWEEP_TXT = os.path.join(REPO_ROOT, "results", "sweep.txt")
 OUT_JSON = os.path.join(REPO_ROOT, "frontend", "public", "data", "results.json")
 
 CS_ORDER = ["empty", "short", "long"]
@@ -60,6 +63,33 @@ def read_machine():
             last_key = key.strip()
             fields[last_key] = value.strip()
     return {"text": text, "fields": fields}
+
+
+def read_sweep():
+    """Read results/sweep.txt (written by run_all.sh): commit, date,
+    iterations per thread count and runs. Missing file -> empty values."""
+    sweep = {"commit": None, "date": None, "iterations": {}, "runs": None}
+    if not os.path.exists(SWEEP_TXT):
+        return sweep
+    with open(SWEEP_TXT) as f:
+        for line in f:
+            if ":" not in line:
+                continue
+            key, value = line.split(":", 1)
+            key = key.strip()
+            value = value.strip()
+            if key == "Commit":
+                sweep["commit"] = value
+            elif key == "Date":
+                sweep["date"] = value
+            elif key == "Runs per combination":
+                sweep["runs"] = int(value)
+            elif key == "Iterations per thread":
+                # "1=100000 2=100000 ... 32=1000"
+                for pair in value.split():
+                    threads, iters = pair.split("=")
+                    sweep["iterations"][threads] = int(iters)
+    return sweep
 
 
 def main():
@@ -133,6 +163,7 @@ def main():
         "generated": datetime.date.today().isoformat(),
         "source": os.path.relpath(csv_path, REPO_ROOT),
         "machine": read_machine(),
+        "sweep": read_sweep(),
         "thread_counts": thread_counts,
         "cs_lengths": CS_ORDER,
         "medians": medians,
