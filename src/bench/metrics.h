@@ -20,9 +20,9 @@ struct RunResult {
     std::string cs;           // critical-section length: empty, short or long
     int run;                  // run number, starting at 1
     double total_ms;          // wall-clock time of the whole run
-    long long total_ops;      // threads x iterations
+    long long total_ops;      // sum of the per-thread acquisition counts
     std::vector<long long> acquisitions;  // acquisitions made by each thread
-    bool correct;             // did the shared counter reach threads x iterations?
+    bool correct;             // counter == total_ops, and one thread reached M?
 };
 
 // Smallest and largest per-thread acquisition count.

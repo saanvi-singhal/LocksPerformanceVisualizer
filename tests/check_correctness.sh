@@ -4,6 +4,11 @@
 # 100000 iterations, RUNS times each, and fails (non-zero exit status) if
 # any run reports correct=false.
 #
+# A run is correct when the shared counter equals the sum of the per-thread
+# acquisition counts (no lost updates) and at least one thread reached M.
+# (Threads stop as soon as the first one finishes its M iterations, so the
+# total is not simply threads x M; see SharedState::stop in main.cpp.)
+#
 # - NoLock ("none") is expected to fail: its result is printed but does not
 #   affect the pass/fail result.
 # - peterson and peterson_relaxed only support 2 threads.

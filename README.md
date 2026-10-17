@@ -34,7 +34,7 @@ cmake --build build-tsan
 | --- | --- | --- |
 | `--lock NAME` | `none`, `mutex`, `peterson`, `bakery`, `tas`, `ttas`, `ticket`, `semaphore`, `atomic` | `mutex` |
 | `--threads N` | number of threads (Peterson: exactly 2) | 4 |
-| `--iters M` | lock acquisitions per thread | 100000 |
+| `--iters M` | lock acquisitions per thread; the run stops when the first thread reaches M | 100000 |
 | `--cs LEN` | critical-section work: `empty`, `short`, `long` | `empty` |
 | `--runs R` | repeat the run R times | 1 |
 | `--pin` | pin thread i to core i mod cores | off |
@@ -43,13 +43,15 @@ cmake --build build-tsan
 `atomic` uses no lock: it increments the counter with `std::atomic` `fetch_add`, as the lock-free reference.
 `none` is deliberately broken and should report `correct=false`.
 
+**Fairness window.** All threads stop as soon as the first thread has done its M iterations. Without this, every thread would always end with exactly M acquisitions and the fairness ratio would be 1.0 for every lock. A run is `correct=true` when the shared counter equals the sum of the per-thread acquisition counts (no lost updates) and at least one thread reached M. `ops_per_sec` is that sum divided by the measured time (start barrier to last join).
+
 Output is one CSV line per run:
 
 ```
 lock,threads,cs,run,total_ms,ops_per_sec,min_acq,max_acq,fairness_ratio,correct
 ```
 
-`fairness_ratio` is the busiest thread's acquisitions divided by the least busy thread's (1.0 = perfectly fair). It is left empty if some thread never got the lock.
+`fairness_ratio` is the busiest thread's acquisitions divided by the least busy thread's, counted inside the fairness window (1.0 = perfectly fair). It is left empty if some thread never got the lock.
 
 Locks that are not implemented yet behave like `none` and print a `NOT IMPLEMENTED` warning on stderr.
 
