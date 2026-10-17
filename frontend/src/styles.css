@@ -496,6 +496,95 @@ code {
   width: auto;
 }
 
+/* ---- Navigation bar (components/NavBar.jsx) --------------------------- */
+
+.navbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--page);
+  border-bottom: 1px solid var(--grid);
+}
+
+.navbar-row,
+.navbar-sections {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 0 16px;
+}
+
+.navbar-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-height: 48px;
+}
+
+.navbar-brand {
+  font-weight: 700;
+}
+
+.navbar ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.navbar-tabs {
+  display: flex;
+  gap: 4px;
+}
+
+.navbar-tab {
+  display: inline-block;
+  padding: 6px 12px;
+  border-radius: 6px;
+  color: var(--text-secondary);
+  text-decoration: none;
+}
+
+.navbar-tab[aria-current="page"] {
+  color: var(--text);
+  background: var(--grid);
+  font-weight: 600;
+}
+
+.navbar-right {
+  margin-left: auto;
+}
+
+/* The section links scroll sideways inside the bar on a narrow screen. */
+.navbar-sections {
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+  padding-bottom: 6px;
+}
+
+.navbar-section {
+  font: inherit;
+  font-size: 0.85rem;
+  white-space: nowrap;
+  color: var(--text-secondary);
+  background: none;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  padding: 4px 8px;
+  min-height: 32px;
+  cursor: pointer;
+}
+
+/* The section currently on screen. */
+.navbar-section[aria-current="true"] {
+  color: var(--text);
+  border-bottom-color: var(--accent);
+}
+
+/* Leave room for the sticky bar when jumping to a section. */
+section {
+  scroll-margin-top: 96px;
+}
+
 /* ---- Fade-in on scroll (components/Reveal.jsx) ------------------------ */
 
 .reveal {

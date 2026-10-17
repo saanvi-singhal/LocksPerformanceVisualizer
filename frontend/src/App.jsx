@@ -14,6 +14,23 @@ import { LegendSwatch } from "./components/Marker.jsx";
 import { CompareLocks } from "./components/CompareLocks.jsx";
 import { CountUp } from "./components/CountUp.jsx";
 import { Reveal } from "./components/Reveal.jsx";
+import { NavBar } from "./components/NavBar.jsx";
+
+// Views shown as tabs in the navigation bar.
+const TABS = [
+  { id: "results", label: "Results", href: "#/results" },
+];
+
+// Sections of the Results view, for the navigation bar. The ids match the
+// <Reveal id=...> sections below.
+const RESULTS_SECTIONS = [
+  { id: "section-summary", label: "Summary" },
+  { id: "section-locks", label: "Locks" },
+  { id: "section-correctness", label: "Correctness" },
+  { id: "section-performance", label: "Performance" },
+  { id: "section-oversub", label: "Oversubscription" },
+  { id: "section-machine", label: "Machine" },
+];
 
 // Chart colours that are not lock colours (axes, grid, surface, text).
 const THEME_COLORS = {
@@ -128,6 +145,8 @@ export default function App() {
   const oversubNote = threadLabel(oversubThreads) + " = 2 × CPUs (oversubscribed), run with fewer iterations per thread.";
 
   return (
+    <>
+    <NavBar tabs={TABS} activeTab="results" sections={RESULTS_SECTIONS} right={<ThemeToggle />} />
     <main className="page">
       <header className="hero">
         <p className="eyebrow">VIT BCSE303L Operating Systems · Module 4 · Concurrency</p>
@@ -138,7 +157,6 @@ export default function App() {
           lock acquisitions per second all threads achieve together (throughput) and whether every
           thread gets a fair share (fairness), from 1 to {oversubThreads} threads.
         </p>
-        <ThemeToggle />
       </header>
 
       <Reveal id="section-summary" labelledBy="summary">
@@ -320,6 +338,7 @@ export default function App() {
 
       <SweepFooter sweep={data.sweep} generated={data.generated} source={data.source} />
     </main>
+    </>
   );
 }
 
