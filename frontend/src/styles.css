@@ -15,6 +15,8 @@
   --good: #006300;
   --bad: #d03b3b;
   --accent: #2a78d6;
+  --highlight: #fff0bf;
+  --bad-bg: #fbe9e9;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -30,6 +32,8 @@
     --good: #0ca30c;
     --bad: #e66767;
     --accent: #3987e5;
+    --highlight: #4a3d10;
+    --bad-bg: #3a1d1d;
   }
 }
 
@@ -45,6 +49,8 @@
   --good: #0ca30c;
   --bad: #e66767;
   --accent: #3987e5;
+  --highlight: #4a3d10;
+  --bad-bg: #3a1d1d;
 }
 
 * {
@@ -57,6 +63,30 @@ body {
   color: var(--text);
   font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
   line-height: 1.5;
+}
+
+/* ---- Keyboard focus ------------------------------------------------- */
+
+/* A clear ring around whatever the keyboard is on. :focus-visible shows it
+   for keyboard use, not for mouse clicks. */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ---- Less motion ------------------------------------------------------ */
+
+/* If the viewer asks for less motion, switch off every transition and
+   animation on the page, including any added later. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 /* ---- Page layout ---------------------------------------------------- */
@@ -139,6 +169,45 @@ code {
   margin-top: 8px;
 }
 
+/* Light/dark switch: a small track with a knob that slides right when on. */
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-secondary);
+}
+
+.theme-toggle-track {
+  position: relative;
+  width: 32px;
+  height: 18px;
+  border-radius: 9px;
+  background: var(--grid);
+  border: 1px solid var(--border);
+}
+
+.theme-toggle-knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--text-secondary);
+  transition: transform 0.15s;
+}
+
+.theme-toggle[aria-checked="true"] .theme-toggle-knob {
+  transform: translateX(14px);
+  background: var(--accent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .theme-toggle-knob {
+    transition: none;
+  }
+}
+
 /* ---- Summary tiles ---------------------------------------------------- */
 
 .tiles {
@@ -163,6 +232,11 @@ code {
   font-size: 1.6rem;
   font-weight: 600;
   margin: 2px 0;
+}
+
+.tile-number {
+  font-size: 1rem;
+  margin-bottom: 2px;
 }
 
 .tile-note {
@@ -221,6 +295,20 @@ code {
   font-size: 0.85rem;
 }
 
+.filters label.slider {
+  min-width: 200px;
+}
+
+.filters label.slider strong {
+  color: var(--text);
+}
+
+.filters input[type="range"] {
+  width: 100%;
+  min-height: 32px;
+  accent-color: var(--accent);
+}
+
 .filters label.checkbox {
   flex-direction: row;
   align-items: center;
@@ -235,6 +323,45 @@ code {
   border-radius: 6px;
   padding: 6px 8px;
   min-height: 36px;
+}
+
+/* ---- Comparison sentence --------------------------------------------- */
+
+.compare {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+}
+
+.compare-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+}
+
+.compare-controls label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+.compare-controls select {
+  font: inherit;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 8px;
+  min-height: 36px;
+}
+
+.compare-sentence {
+  margin: 10px 0 0;
+  font-size: 1.05rem;
 }
 
 /* ---- Charts ----------------------------------------------------------- */
@@ -273,8 +400,31 @@ code {
 
 .legend li {
   display: flex;
+}
+
+/* A legend entry is a button that hides or shows its lock. */
+.legend-item {
+  display: flex;
   align-items: center;
   gap: 4px;
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  border-radius: 6px;
+  padding: 4px 6px;
+  min-height: 32px;
+  cursor: pointer;
+}
+
+.legend-item:hover {
+  background: var(--grid);
+}
+
+/* Switched off: faded and struck through, so it is clear it can come back. */
+.legend-item[aria-pressed="false"] {
+  opacity: 0.45;
+  text-decoration: line-through;
 }
 
 .swatch {
@@ -413,6 +563,728 @@ code {
 
 .footer-table {
   width: auto;
+}
+
+/* ---- Navigation bar (components/NavBar.jsx) --------------------------- */
+
+.navbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--page);
+  border-bottom: 1px solid var(--grid);
+}
+
+.navbar-row,
+.navbar-sections {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 0 16px;
+}
+
+.navbar-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-height: 48px;
+}
+
+.navbar-brand {
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.theme-toggle {
+  white-space: nowrap;
+}
+
+/* Very narrow screens: drop the name, the tabs already say where you are. */
+@media (max-width: 420px) {
+  .navbar-brand {
+    display: none;
+  }
+}
+
+.navbar ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.navbar-tabs {
+  display: flex;
+  gap: 4px;
+}
+
+.navbar-tab {
+  display: inline-block;
+  padding: 6px 12px;
+  border-radius: 6px;
+  color: var(--text-secondary);
+  text-decoration: none;
+}
+
+.navbar-tab[aria-current="page"] {
+  color: var(--text);
+  background: var(--grid);
+  font-weight: 600;
+}
+
+.navbar-right {
+  margin-left: auto;
+}
+
+/* The section links scroll sideways inside the bar on a narrow screen. */
+.navbar-sections {
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+  padding-bottom: 6px;
+}
+
+.navbar-section {
+  font: inherit;
+  font-size: 0.85rem;
+  white-space: nowrap;
+  color: var(--text-secondary);
+  background: none;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  padding: 4px 8px;
+  min-height: 32px;
+  cursor: pointer;
+}
+
+/* The section currently on screen. */
+.navbar-section[aria-current="true"] {
+  color: var(--text);
+  border-bottom-color: var(--accent);
+}
+
+/* Leave room for the sticky bar when jumping to a section. */
+section {
+  scroll-margin-top: 96px;
+}
+
+/* ---- Fade-in on scroll (components/Reveal.jsx) ------------------------ */
+
+.reveal {
+  opacity: 0;
+  transform: translateY(16px);
+  transition: opacity 0.5s ease-out, transform 0.5s ease-out;
+}
+
+.reveal.is-visible {
+  opacity: 1;
+  transform: none;
+}
+
+/* Less motion requested: no fade, everything visible at once. */
+@media (prefers-reduced-motion: reduce) {
+  .reveal,
+  .reveal.is-visible {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}
+
+/* Printing: always show every section. */
+@media print {
+  .reveal {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ---- Simulator (views/SimulatorView.jsx, sim-ui/) --------------------- */
+
+/* The "not measured data" label inside the sticky bar. */
+.navbar-notice {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 2px 16px 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.sim-controls {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 16px;
+}
+
+.sim-control-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 10px 16px;
+  margin: 4px 0 8px;
+}
+
+.sim-control-row label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.sim-control-row select,
+.sim-control-row input[type="number"] {
+  font: inherit;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 8px;
+  min-height: 36px;
+}
+
+.sim-control-row input[type="number"] {
+  width: 110px;
+}
+
+.sim-control-row .speed input {
+  min-height: 32px;
+  accent-color: var(--accent);
+}
+
+.sim-button {
+  font: inherit;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 14px;
+  min-height: 36px;
+  cursor: pointer;
+}
+
+.sim-button.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #ffffff;
+}
+
+.sim-button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.thread-button {
+  border-width: 2px;
+}
+
+.sim-link {
+  color: var(--accent);
+  align-self: center;
+}
+
+/* "What to notice" box for the chosen lock. */
+.sim-notice-box {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 16px;
+  margin-top: 16px;
+}
+
+.sim-notice-box h3 {
+  font-size: 0.95rem;
+}
+
+.sim-notice-box p {
+  margin: 4px 0 0;
+  color: var(--text-secondary);
+}
+
+/* Links between the views: "See how it works", "See measured results". */
+.card-link {
+  display: inline-block;
+  margin-top: 8px;
+  color: var(--accent);
+  font-size: 0.9rem;
+  min-height: 24px;
+}
+
+/* Note above the chart a Simulator link pointed to. */
+.from-sim {
+  border-left: 4px solid var(--accent);
+  background: var(--surface);
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-size: 0.9rem;
+}
+
+/* Leave room for the sticky bar when a link scrolls to a chart. */
+.chart-card {
+  scroll-margin-top: 110px;
+}
+
+/* Simulator sub-tabs: Step by step | Cores and oversubscription */
+.sim-mode-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 8px 0;
+}
+
+.sim-mode-tabs a {
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-secondary);
+  text-decoration: none;
+}
+
+.sim-mode-tabs a[aria-current="page"] {
+  color: var(--text);
+  background: var(--grid);
+  font-weight: 600;
+}
+
+/* Cores mode: one or two lock panels side by side (one column on a phone). */
+.cores-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+  margin-top: 16px;
+}
+
+@media (min-width: 900px) {
+  .cores-grid.two {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+}
+
+.cores-state {
+  margin-top: 16px;
+}
+
+.cores-heading {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin: 12px 0 6px;
+}
+
+.rate-box {
+  border-left: 4px solid var(--accent);
+  padding: 4px 12px;
+}
+
+.rate-value {
+  font-size: 2rem;
+  font-weight: 700;
+  margin-right: 8px;
+}
+
+.rate-label {
+  color: var(--text-secondary);
+}
+
+.rate-sub {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+.core-slots {
+  list-style: none;
+  margin: 0 0 12px;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 8px;
+}
+
+.core-slot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  border: 2px solid var(--text-secondary);
+  border-radius: 8px;
+  padding: 6px 8px;
+  min-height: 60px;
+}
+
+.core-slot.empty {
+  border-style: dashed;
+  border-color: var(--grid);
+}
+
+.core-name {
+  flex-basis: 100%;
+  font-size: 0.75rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.core-doing {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.last-round {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-size: 0.85rem;
+}
+
+.last-round li {
+  padding: 4px 0;
+  border-bottom: 1px solid var(--grid);
+}
+
+.violation-inline {
+  margin: 8px 0 0;
+  color: var(--text);
+  font-weight: 600;
+}
+
+.violation-inline [aria-hidden="true"] {
+  color: var(--bad);
+}
+
+.model-note {
+  font-size: 0.85rem;
+}
+
+.checkbox-inline {
+  flex-direction: row !important;
+  align-items: center;
+  min-height: 36px;
+}
+
+/* Store buffers: one row per thread, entries oldest first. */
+.buffer-list {
+  list-style: none;
+  margin: 0 0 8px;
+  padding: 0;
+}
+
+.buffer-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 4px;
+  border-bottom: 1px solid var(--grid);
+  border-radius: 4px;
+}
+
+.buffer-entry {
+  border: 1px dashed var(--muted);
+  border-radius: 4px;
+  padding: 0 6px;
+  font-size: 0.85rem;
+}
+
+.sim-explain {
+  font-size: 1.05rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--accent);
+  border-radius: 8px;
+  padding: 10px 14px;
+  margin: 16px 0;
+}
+
+/* Two columns on a wide screen: code | threads + state. One on a phone. */
+.sim-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+  margin-top: 0;
+}
+
+@media (min-width: 900px) {
+  .sim-grid {
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+  }
+}
+
+.sim-column {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+.sim-panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 16px;
+  min-width: 0;
+}
+
+.sim-panel h3 {
+  margin-bottom: 8px;
+}
+
+/* Thread chip: coloured dot and border, normal text colour. */
+.thread-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: 2px solid;
+  border-radius: 999px;
+  padding: 0 8px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  line-height: 1.6;
+  background: var(--surface);
+  white-space: nowrap;
+}
+
+.thread-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.thread-chip-note {
+  font-weight: 400;
+  color: var(--text-secondary);
+}
+
+/* Pseudo-code */
+.code-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.code-section {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  margin: 10px 0 2px;
+}
+
+.code-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
+  border-bottom: 1px solid var(--grid);
+}
+
+.code-bars {
+  display: flex;
+  gap: 2px;
+  width: 16px;
+  align-self: stretch;
+}
+
+.code-bar {
+  width: 4px;
+  border-radius: 2px;
+}
+
+.code-number {
+  width: 1.5em;
+  text-align: right;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.8rem;
+}
+
+.code-text {
+  flex: 1;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.code-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  justify-content: flex-end;
+}
+
+/* Thread lanes */
+/* As many lanes per row as fit (4 or 5 on a wide screen, 2 on a phone). */
+.lanes {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 8px;
+}
+
+.lane {
+  border: 1px solid var(--grid);
+  border-radius: 8px;
+  padding: 6px;
+  min-height: 72px;
+}
+
+.lane-title {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+}
+
+.lane-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.lane-violation {
+  border: 2px solid var(--bad);
+  background: var(--bad-bg);
+}
+
+.lane-warning {
+  color: var(--bad);
+  font-weight: 600;
+}
+
+/* Shared variables */
+.var-list {
+  margin: 0;
+}
+
+.var-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 4px 0;
+  border-bottom: 1px solid var(--grid);
+}
+
+.var-row dt {
+  min-width: 7em;
+}
+
+.var-row dd {
+  margin: 0;
+}
+
+.var-array {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.var-cell {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-variant-numeric: tabular-nums;
+}
+
+.var-index {
+  color: var(--muted);
+  font-size: 0.8em;
+}
+
+/* The variable the last step wrote: highlighted, with a short flash.
+   With reduced motion the flash is off but the highlight stays. */
+.changed {
+  background: var(--highlight);
+  animation: flash 0.9s ease-out;
+}
+
+@keyframes flash {
+  from {
+    box-shadow: 0 0 0 3px var(--accent);
+  }
+  to {
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+
+.counter-box {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px 12px;
+  margin: 12px 0;
+}
+
+.counter-label {
+  color: var(--text-secondary);
+}
+
+.counter-value {
+  font-size: 2rem;
+  font-weight: 700;
+  padding: 0 8px;
+  border-radius: 6px;
+}
+
+.counter-note {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+/* Event log */
+.event-log {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.log-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--grid);
+  font-size: 0.85rem;
+}
+
+.log-step {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  min-width: 2.5em;
+}
+
+.log-code {
+  color: var(--text-secondary);
+}
+
+.log-explain {
+  flex-basis: 100%;
+}
+
+/* Violation banner: red tint, red border, an icon and words (never colour alone). */
+.violation {
+  border: 2px solid var(--bad);
+  background: var(--bad-bg);
+  border-radius: 10px;
+  padding: 12px 16px;
+  margin-top: 16px;
+}
+
+.violation-title {
+  margin: 0;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.violation-title [aria-hidden="true"] {
+  color: var(--bad);
+}
+
+.violation-sub {
+  margin: 6px 0;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.sim-notice-footer {
+  margin-top: 24px;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
 }
 
 /* ---- Small screens ---------------------------------------------------- */

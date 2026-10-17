@@ -113,15 +113,20 @@ function formatPercent(value) {
   return value.toFixed(2) + "%";
 }
 
+// Exact whole number with thousands separators, for the tooltip.
+function exact(value) {
+  return Math.round(value).toLocaleString("en-US");
+}
+
 function OversubTooltip({ active, payload, baseThreads, oversubThreads }) {
   if (!active || !payload || payload.length === 0) return null;
   const d = payload[0].payload;
   return (
     <div className="tooltip">
       <div className="tooltip-title">{d.name}</div>
-      <div className="tooltip-row"><span className="tooltip-name">{baseThreads} threads</span><span className="tooltip-value">{shortNumber(d.base)} ops/s</span></div>
-      <div className="tooltip-row"><span className="tooltip-name">{oversubThreads} threads</span><span className="tooltip-value">{shortNumber(d.over)} ops/s</span></div>
-      <div className="tooltip-row"><span className="tooltip-name">kept</span><span className="tooltip-value">{formatPercent(d.retained)}</span></div>
+      <div className="tooltip-row"><span className="tooltip-name">{baseThreads} threads</span><span className="tooltip-value">{exact(d.base)} ops/s</span></div>
+      <div className="tooltip-row"><span className="tooltip-name">{oversubThreads} threads</span><span className="tooltip-value">{exact(d.over)} ops/s</span></div>
+      <div className="tooltip-row"><span className="tooltip-name">kept</span><span className="tooltip-value">{d.retained.toFixed(3)}%</span></div>
     </div>
   );
 }

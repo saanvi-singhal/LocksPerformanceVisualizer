@@ -7,7 +7,7 @@
 //     available by hovering or by colour.
 import { useState } from "react";
 import {
-  CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis,
+  CartesianGrid, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from "recharts";
 
 import { BROKEN_LOCKS, LOCK_MARKERS, lockLabel } from "../locks.js";
@@ -26,38 +26,56 @@ import { LegendSwatch, Marker } from "./Marker.jsx";
 //              are listed in row.undefinedFor. A point that was not run at
 //              all always shows "–".
 //   footnote   text shown under the chart when such a point exists
+//   hidden     locks the viewer switched off (shared by all charts)
+//   onToggle   called with a lock name when its legend entry is clicked
+//   highlightX (optional) x value to mark with a vertical line (the thread
+//              count chosen with the slider)
+//   exactFormat  function value -> string with the exact value, for the
+//              hover tooltip (the table keeps the shorter "format")
+//   id         (optional) element id, so a link can scroll to this chart
 export function LockLineChart({
   rows, locks, colors, theme, xLabel, title, caption, format, minY, missingText, footnote,
+  hidden, onToggle, highlightX, exactFormat, id,
 }) {
   const [showTable, setShowTable] = useState(false);
 
-  // Only draw locks that have at least one value in these rows.
+  // Locks that have at least one value in these rows get a legend entry;
+  // of those, the ones not switched off are drawn.
   const present = locks.filter((lock) => rows.some((row) => row[lock] != null));
-  const hasUndefined = rows.some((row) => (row.undefinedFor || []).some((lock) => present.includes(lock)));
+  const drawn = present.filter((lock) => !hidden.includes(lock));
+  const hasUndefined = rows.some((row) => (row.undefinedFor || []).some((lock) => drawn.includes(lock)));
 
   const values = [];
   for (const row of rows) {
-    for (const lock of present) values.push(row[lock]);
+    for (const lock of drawn) values.push(row[lock]);
   }
   const axis = logTicks(values, minY);
 
   return (
-    <figure className="chart-card">
+    <figure className="chart-card" id={id}>
       <figcaption>
         <h3>{title}</h3>
         {caption && <p className="caption">{caption}</p>}
       </figcaption>
 
-      <ul className="legend">
+      {/* Each legend entry is a button: click to hide or show that lock on every chart. */}
+      <ul className="legend" aria-label="Locks (click to hide or show)">
         {present.map((lock) => (
           <li key={lock}>
-            <LegendSwatch
-              shape={LOCK_MARKERS[lock]}
-              color={colors[lock]}
-              surface={theme.surface}
-              dashed={BROKEN_LOCKS.includes(lock)}
-            />
-            {lockLabel(lock)}
+            <button
+              type="button"
+              className="legend-item"
+              aria-pressed={!hidden.includes(lock)}
+              onClick={() => onToggle(lock)}
+            >
+              <LegendSwatch
+                shape={LOCK_MARKERS[lock]}
+                color={colors[lock]}
+                surface={theme.surface}
+                dashed={BROKEN_LOCKS.includes(lock)}
+              />
+              {lockLabel(lock)}
+            </button>
           </li>
         ))}
       </ul>
@@ -66,6 +84,9 @@ export function LockLineChart({
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={rows} margin={{ top: 8, right: 12, bottom: 28, left: 8 }}>
             <CartesianGrid stroke={theme.grid} vertical={false} />
+            {highlightX !== undefined && (
+              <ReferenceLine x={highlightX} stroke={theme.muted} strokeWidth={1.5} />
+            )}
             <XAxis
               dataKey="x"
               stroke={theme.axis}
@@ -89,12 +110,12 @@ export function LockLineChart({
               cursor={{ stroke: theme.axis, strokeWidth: 1 }}
               content={
                 <ChartTooltip
-                  locks={present} colors={colors} theme={theme}
-                  format={format} xLabel={xLabel} missingText={missingText}
+                  locks={drawn} colors={colors} theme={theme}
+                  format={exactFormat || format} xLabel={xLabel} missingText={missingText}
                 />
               }
             />
-            {present.map((lock) => (
+            {drawn.map((lock) => (
               <Line
                 key={lock}
                 dataKey={lock}
@@ -118,7 +139,7 @@ export function LockLineChart({
         {showTable ? "Hide table" : "Show as table"}
       </button>
       {showTable && (
-        <DataTable rows={rows} locks={present} xLabel={xLabel} format={format} missingText={missingText} />
+        <DataTable rows={rows} locks={drawn} xLabel={xLabel} format={format} missingText={missingText} />
       )}
     </figure>
   );
@@ -153,7 +174,7 @@ function ChartTooltip({ active, payload, label, locks, colors, theme, format, xL
     .concat(locks.filter((lock) => undefinedFor.includes(lock)));
   return (
     <div className="tooltip">
-      <div className="tooltip-title">{xLabel}: {label}</div>
+      <div className="tooltip-title">{xLabel === "threads" ? label + " threads" : xLabel + ": " + label}</div>
       {entries.map((lock) => (
         <div className="tooltip-row" key={lock}>
           <LegendSwatch
