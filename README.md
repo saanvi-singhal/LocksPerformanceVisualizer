@@ -93,14 +93,63 @@ For a quick check that everything works: `ITERS=20000 RUNS=3 scripts/run_all.sh`
 
 Thread counts are compared with ops/s, not total time: every thread has the same iteration budget, so the total work grows with the thread count, and because of the fairness window an unfair lock also ends its run early.
 
+## Demo
+
+The dashboard in `frontend/` (Vite + React + Recharts) shows the results from `frontend/public/data/results.json`. That file is committed, so the dashboard works without re-running the benchmark. Node.js 20 or newer is needed for the frontend.
+
+**Start the dashboard with the committed results (one command, from the repository root):**
+
+```sh
+npm --prefix frontend install && npm --prefix frontend run dev
+```
+
+Then open http://localhost:5173/.
+
+**Full pipeline, from source to dashboard:**
+
+```sh
+# 1. Build the C++ benchmark
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build
+
+# 2. Check correctness (and optionally ThreadSanitizer)
+tests/check_correctness.sh
+tests/run_tsan.sh
+
+# 3. Run the sweep (about 15-20 minutes; delete the old data first)
+rm -f results/raw.csv
+scripts/run_all.sh
+
+# 4. Make the PNG graphs and export the data for the dashboard
+python3 scripts/plot.py
+python3 scripts/export_results.py
+
+# 5. Start the dashboard (development server, http://localhost:5173/)
+cd frontend
+npm install
+npm run dev
+
+# 5b. Or build the production version and preview it (http://localhost:4173/)
+npm run build
+npm run preview
+```
+
+**Suggested demo order for the viva:**
+
+1. **NoLock fails.** `./build/lock_bench --lock none --threads 4 --iters 100000` reports `correct=false`: increments are lost. Optionally show the ThreadSanitizer report: `./build-tsan/lock_bench --lock none --threads 4 --iters 1000`.
+2. **Mutex passes.** `./build/lock_bench --lock mutex --threads 4 --iters 100000` reports `correct=true`. Run `tests/check_correctness.sh` to show every real lock passing.
+3. **Peterson: relaxed vs sequentially consistent.** `./build/lock_bench --lock peterson --threads 2 --iters 100000 --runs 5` is always correct; `--lock peterson_relaxed` usually reports `correct=false`. Explain the x86 store buffer: a store can wait in it while a later load goes ahead, and seq_cst adds the barrier (an `xchg`) that prevents this.
+4. **The graphs.** Open the dashboard: correctness table, then throughput vs threads (spinlocks vs mutex, the collapse of ticket and bakery at 32\*), fairness (ticket and bakery near 1, TAS and TTAS unfair), time per operation vs critical-section length, and the oversubscription chart.
+
 ## Layout
 
 ```
 src/locks/    one header per lock, plus lock.h (the common interface)
 src/bench/    main.cpp (harness), metrics.h / metrics.cpp (fairness, CSV)
 tests/        check_correctness.sh, run_tsan.sh
-scripts/      run_all.sh, plot.py
-results/      raw.csv and graphs/ (generated, not in git)
+scripts/      run_all.sh, plot.py, export_results.py
+results/      machine.txt; raw.csv and graphs/ (generated, not in git)
+frontend/     dashboard (Vite + React); public/data/results.json is generated but committed
 docs/         plan, report, slides
 ```
 
@@ -115,5 +164,6 @@ docs/         plan, report, slides
 | `tests/` | `src/bench/metrics.h`, `src/bench/metrics.cpp` | |
 | | `scripts/` | |
 | | `results/` | |
+| | `frontend/` | |
 
 `lock.h` is agreed by both on day 1; do not change it without telling each other. Review each other's locks before merging so both of you can explain every one in the viva.
