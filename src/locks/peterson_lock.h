@@ -47,8 +47,8 @@ public:
         // Both conditions must hold for us to be blocked.
         while (flag_[other].load(std::memory_order_seq_cst) &&
                turn_.load(std::memory_order_seq_cst) == other) {
-            // Busy wait: yield the CPU to avoid burning a whole core.
-            // On a uniprocessor this is essential; on multicore it is polite.
+            // Busy wait: the thread keeps spinning on the CPU until the
+            // condition becomes false. It does not yield or sleep.
         }
     }
 
@@ -61,7 +61,7 @@ public:
 
 private:
     // flag_[i] is true while thread i wants to enter or is in the CS.
-    // Padded separately so they do not share a cache line.
+    // (Both flags and turn_ sit in the same cache line; they are not padded.)
     std::atomic<bool> flag_[2];
 
     // turn_ holds the id of the thread that must wait if both want in.

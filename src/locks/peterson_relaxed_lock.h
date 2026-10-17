@@ -3,20 +3,24 @@
 //
 // This is a DELIBERATELY BROKEN variant used for the memory-ordering demo.
 //
-// The difference from PetersonLock: both flag stores and flag loads use
-// memory_order_relaxed instead of memory_order_seq_cst.
+// The difference from PetersonLock: every store and load of flag_ and turn_
+// uses memory_order_relaxed instead of memory_order_seq_cst.
 //
-// Why it can break: on a modern CPU (x86 has Total Store Order; ARM/POWER have
-// weaker models) a relaxed store to flag[tid] may not be visible to the other
-// core before that core reads flag[tid]. Both threads can therefore see the
-// other's flag as false, conclude "the other is not interested", and enter the
-// critical section at the same time — mutual exclusion fails.
+// Why it breaks: Peterson's algorithm needs our store to flag[tid] to be
+// visible to the other thread BEFORE we read flag[other]. Relaxed ordering
+// does not promise that, so both threads can read the other's flag as false,
+// conclude "the other is not interested", and enter the critical section at
+// the same time: mutual exclusion fails.
 //
-// On x86, TSO makes this hard to observe because stores are not actually
-// reordered past later stores. Use --pin and a very high iteration count, or
-// run on an ARM/POWER system (e.g. AWS Graviton). If it never fails on your
-// machine, record that and explain why TSO makes it unlikely on x86 — that is
-// itself a valid viva answer.
+// This happens on x86 too, and often. x86 (Total Store Order) keeps stores in
+// order with other stores, but it does let a store wait in the core's store
+// buffer while a LATER LOAD goes ahead ("store -> load reordering"). That is
+// exactly the reordering that breaks Peterson. With seq_cst, the compiler adds
+// a full barrier (on x86 an xchg or mfence instruction) that drains the store
+// buffer first; with relaxed it emits a plain mov and no barrier.
+//
+// Measured on this project's x86 machine (AMD Ryzen): check_correctness.sh
+// reports correct=false in most runs at 2 threads and 100000 iterations.
 //
 // Owner: Person A.
 
@@ -46,9 +50,9 @@ public:
         flag_[tid].store(true, std::memory_order_relaxed);
 
         // Step 2: yield the turn — relaxed.
-        // A seq_cst fence here would restore correctness; without it the
-        // store to flag_[tid] above might not yet be visible to the other core
-        // when the other core reads flag_[other] below.
+        // Without a barrier, the stores above can still be sitting in this
+        // core's store buffer when the loads in step 3 run. A seq_cst fence
+        // after this store (just before step 3) would restore correctness.
         turn_.store(other, std::memory_order_relaxed);
 
         // Step 3: spin — relaxed loads.

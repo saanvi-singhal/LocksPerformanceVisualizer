@@ -58,7 +58,7 @@ lock,threads,cs,run,total_ms,ops_per_sec,min_acq,max_acq,fairness_ratio,correct
 
 ```sh
 tests/check_correctness.sh
-bash tests/run_tsan.sh      # ThreadSanitizer run (builds build-tsan/ if needed)
+tests/run_tsan.sh           # ThreadSanitizer run on every lock (builds build-tsan/ first)
 ```
 
 `check_correctness.sh` runs every lock with 4 threads (Peterson variants: 2) and 100000 iterations, 5 runs each, and exits non-zero if any run is incorrect. The results of `none` and `peterson_relaxed` are printed as INFO but not counted, because they are expected to fail.
