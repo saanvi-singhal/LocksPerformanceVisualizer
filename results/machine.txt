@@ -1,0 +1,12 @@
+CPU: AMD Ryzen 7 7435HS (x86_64, Zen 3+)
+Cores: 8 physical cores, 2 threads per core = 16 logical CPUs, 1 socket, 1 NUMA node
+Caches: L1d 32 KiB per core, L2 512 KiB per core, L3 16 MiB shared
+Clock: up to 4.55 GHz, frequency boost enabled (laptop, not fixed)
+Memory: 23 GiB
+OS: Arch Linux, kernel Linux 7.2.9-zen1-1-zen
+Compiler: g++ (GCC) 16.2.1, flags -O2 -Wall -Wextra, C++17
+CMake: 4.4.4
+Python: 3.14.8, pandas 2.3.3, matplotlib 3.11.2
+Sweep: thread counts 1, 2, 4, 8, 16 and 32 (2 x 16 logical CPUs, oversubscribed);
+       100000 iterations per thread (1000 at 32 threads), 5 runs per combination, no thread pinning
+Recorded: 2026-10-17
