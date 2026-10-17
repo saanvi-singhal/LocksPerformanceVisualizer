@@ -20,7 +20,9 @@ import { LOCK_PROGRAMS } from "../sim/programs.js";
 import { THREAD_COLORS } from "../theme.js";
 import {
   fixThreads, newSim, replayHash, scriptFromParams, scriptFromTokens, settingsFromParams,
+  STEP_VIEW_MAX_THREADS,
 } from "../sim-ui/settings.js";
+import { SimModeTabs } from "../sim-ui/SimModeTabs.jsx";
 import { CodePanel } from "../sim-ui/CodePanel.jsx";
 import { StatePanel } from "../sim-ui/StatePanel.jsx";
 import { ThreadLanes } from "../sim-ui/ThreadLanes.jsx";
@@ -91,7 +93,7 @@ export function SimulatorView({ themeName, nav, params }) {
   // Changing a setting starts a new run with the new settings.
   function changeSettings(changes) {
     const next = { ...settings, ...changes };
-    next.threads = fixThreads(next.lock, next.threads);
+    next.threads = fixThreads(next.lock, next.threads, STEP_VIEW_MAX_THREADS);
     setSettings(next);
     setSim(newSim(next));
     setScript(null);
@@ -110,14 +112,16 @@ export function SimulatorView({ themeName, nav, params }) {
 
   // Manual mode: run one step of thread tid, or flush its store buffer.
   // Choosing by hand ends a replay or preset.
+  // (setSim with a function always starts from the latest state, so quick
+  // repeated clicks are not lost.)
   function runThread(tid) {
     setScript(null);
-    setSim(step(sim, tid));
+    setSim((current) => step(current, tid));
   }
 
   function flushThread(tid) {
     setScript(null);
-    setSim(flush(sim, tid));
+    setSim((current) => flush(current, tid));
   }
 
   // Loads the lock's preset schedule (manual mode, from the start). The
@@ -159,6 +163,7 @@ export function SimulatorView({ themeName, nav, params }) {
       <main className="page sim-page">
         <header className="hero">
           <p className="eyebrow">Simulator · {SIM_NOTICE}</p>
+          <SimModeTabs active="step" />
           <h1>Step through a lock, one line at a time</h1>
           <p className="lede">
             Each thread runs lock(), then counter = counter + 1 split into read, add and write,
@@ -185,7 +190,9 @@ export function SimulatorView({ themeName, nav, params }) {
                 disabled={lock.minThreads === lock.maxThreads}
                 onChange={(e) => changeSettings({ threads: Number(e.target.value) })}
               >
-                {range(lock.minThreads, lock.maxThreads).map((n) => <option key={n} value={n}>{n}</option>)}
+                {range(lock.minThreads, Math.min(lock.maxThreads, STEP_VIEW_MAX_THREADS)).map((n) => (
+                  <option key={n} value={n}>{n}</option>
+                ))}
               </select>
             </label>
             <label>
@@ -239,7 +246,7 @@ export function SimulatorView({ themeName, nav, params }) {
           )}
 
           <div className="sim-control-row">
-            <button type="button" className="sim-button" onClick={() => setSim(advance(sim))} disabled={!canAutoStep || running}>
+            <button type="button" className="sim-button" onClick={() => setSim((current) => advance(current))} disabled={!canAutoStep || running}>
               Step
             </button>
             {running ? (

@@ -110,7 +110,9 @@ export function StatePanel({ sim, threadColors, showBuffers }) {
           {sim.shared.counter}
         </span>
         <span className="counter-note">
-          {finished
+          {!Number.isFinite(sim.iterations)
+            ? "completed acquisitions: " + sim.completed + " (threads loop for ever in this mode)"
+            : finished
             ? (lost === 0
               ? "finished: correct (" + expected + " expected)"
               : "finished: " + lost + " update" + (lost === 1 ? "" : "s") + " lost (" + expected + " expected)")

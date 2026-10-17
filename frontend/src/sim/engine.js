@@ -108,6 +108,7 @@ export function createSim(options) {
   return {
     lock: options.lock,
     threadCount: threadCount,
+    // Infinity = threads loop for ever (the cores / oversubscription mode).
     iterations: options.iterations === undefined ? 2 : options.iterations,
     seed: seed,
     sc: options.sc === true,
@@ -117,8 +118,17 @@ export function createSim(options) {
     stepCount: 0,
     lastThread: -1,
     log: [],
+    // Keep only the newest logLimit log lines (0 = keep all). Long runs in
+    // the cores mode would otherwise grow the log without end.
+    logLimit: options.logLimit === undefined ? 0 : options.logLimit,
     violations: [],
     inViolation: false,
+    // Cores mode (see runRound):
+    round: 0,                 // rounds run so far
+    onCores: [],              // threads that ran in the last round
+    rrNext: 0,                // round robin: the next thread to consider
+    completed: 0,             // acquisitions completed (lock ... unlock cycles)
+    completionRounds: [],     // the round of each recent completion (last 100 rounds)
   };
 }
 
@@ -229,7 +239,9 @@ function stepInPlace(sim, tid) {
     }
 
     if (nextPc >= program.length) {
-      // The last unlock() step is done: one iteration finished.
+      // The last unlock() step is done: one iteration (one acquisition) finished.
+      sim.completed = sim.completed + 1;
+      sim.completionRounds.push(sim.round);
       thread.finished = thread.finished + 1;
       thread.local = {};
       thread.pc = 0;
@@ -257,9 +269,17 @@ function stepInPlace(sim, tid) {
     explain: "Thread " + tid + " " + result.explain,
     changed: changed,
   });
+  trimLog(sim);
 
   checkMutualExclusion(sim);
   return true;
+}
+
+// Drops the oldest log lines when the log is longer than sim.logLimit.
+function trimLog(sim) {
+  if (sim.logLimit > 0 && sim.log.length > sim.logLimit) {
+    sim.log.splice(0, sim.log.length - sim.logLimit);
+  }
 }
 
 // A store through the store buffer.
@@ -425,6 +445,76 @@ export function runToEnd(sim, mode, maxSteps) {
     count++;
   }
   return next;
+}
+
+// ---------------------------------------------------------------------------
+// Cores and oversubscription mode
+// ---------------------------------------------------------------------------
+// One ROUND: at most "cores" runnable threads are chosen, and each of them
+// takes exactly one step. Sleeping threads are not runnable, so they never
+// take a core. Which threads run rotates:
+//   ROUND_ROBIN  the next "cores" runnable threads after the ones that ran
+//                last time (fair rotation);
+//   RANDOM       "cores" different runnable threads, picked with the seed.
+// The scheduler knows nothing about the lock: it only sees which threads
+// are runnable.
+
+export function runRound(sim, cores, mode) {
+  const next = structuredClone(sim);
+  roundInPlace(next, cores, mode);
+  return next;
+}
+
+// Runs many rounds (used by the tests).
+export function runRounds(sim, cores, mode, rounds) {
+  const next = structuredClone(sim);
+  for (let r = 0; r < rounds; r++) {
+    roundInPlace(next, cores, mode);
+  }
+  return next;
+}
+
+function roundInPlace(sim, cores, mode) {
+  const runnable = runnableThreads(sim);
+  let chosen = [];
+  if (runnable.length <= cores) {
+    chosen = runnable;
+  } else if (mode === ROUND_ROBIN) {
+    let tid = sim.rrNext;
+    while (chosen.length < cores) {
+      if (runnable.includes(tid)) chosen.push(tid);
+      tid = (tid + 1) % sim.threadCount;
+    }
+    sim.rrNext = tid;
+  } else {
+    // RANDOM: draw "cores" different threads from the runnable ones.
+    const pool = runnable.slice();
+    while (chosen.length < cores) {
+      const draw = nextRandom(sim.rng);
+      sim.rng = draw.state;
+      const k = Math.floor(draw.value * pool.length);
+      chosen.push(pool[k]);
+      pool.splice(k, 1);
+    }
+  }
+
+  sim.round = sim.round + 1;
+  sim.onCores = chosen.slice();
+  for (const tid of chosen) {
+    stepInPlace(sim, tid);
+  }
+  // Keep only the completions of the last 100 rounds.
+  sim.completionRounds = sim.completionRounds.filter((r) => r > sim.round - 100);
+}
+
+// Acquisitions completed in the last 100 rounds (fewer rounds at the start).
+export function acquisitionsLast100(sim) {
+  return sim.completionRounds.filter((r) => r > sim.round - 100).length;
+}
+
+// Average acquisitions per 100 rounds since the start.
+export function acquisitionsPer100(sim) {
+  return sim.round === 0 ? 0 : (sim.completed * 100) / sim.round;
 }
 
 // Actions as short text, used by presets and replay links:

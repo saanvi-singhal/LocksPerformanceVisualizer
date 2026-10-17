@@ -28,10 +28,16 @@ function clampInt(text, low, high, fallback) {
   return Math.min(high, Math.max(low, n));
 }
 
-// Makes the thread count valid for the lock (Peterson: exactly 2).
-export function fixThreads(lockName, threads) {
+// The step-by-step view shows at most this many threads (the cores view
+// goes up to the lock's maximum, 8).
+export const STEP_VIEW_MAX_THREADS = 4;
+
+// Makes the thread count valid for the lock (Peterson: exactly 2), and at
+// most "cap" if given.
+export function fixThreads(lockName, threads, cap) {
   const lock = LOCK_PROGRAMS[lockName];
-  return Math.min(lock.maxThreads, Math.max(lock.minThreads, threads));
+  const high = cap === undefined ? lock.maxThreads : Math.min(lock.maxThreads, cap);
+  return Math.min(high, Math.max(lock.minThreads, threads));
 }
 
 // Settings from the URL parameters, with defaults for anything missing or wrong.
@@ -39,7 +45,7 @@ export function settingsFromParams(params) {
   const lock = LOCK_PROGRAMS[params.lock] ? params.lock : DEFAULT_SETTINGS.lock;
   return {
     lock: lock,
-    threads: fixThreads(lock, clampInt(params.threads, 1, 8, DEFAULT_SETTINGS.threads)),
+    threads: fixThreads(lock, clampInt(params.threads, 1, 8, DEFAULT_SETTINGS.threads), STEP_VIEW_MAX_THREADS),
     iterations: clampInt(params.iters, 1, 5, DEFAULT_SETTINGS.iterations),
     mode: URL_TO_MODE[params.mode] || DEFAULT_SETTINGS.mode,
     seed: clampInt(params.seed, 0, 999999, DEFAULT_SETTINGS.seed),

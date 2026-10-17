@@ -801,6 +801,132 @@ section {
   color: var(--text-secondary);
 }
 
+/* Simulator sub-tabs: Step by step | Cores and oversubscription */
+.sim-mode-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 8px 0;
+}
+
+.sim-mode-tabs a {
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-secondary);
+  text-decoration: none;
+}
+
+.sim-mode-tabs a[aria-current="page"] {
+  color: var(--text);
+  background: var(--grid);
+  font-weight: 600;
+}
+
+/* Cores mode: one or two lock panels side by side (one column on a phone). */
+.cores-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+  margin-top: 16px;
+}
+
+@media (min-width: 900px) {
+  .cores-grid.two {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+}
+
+.cores-state {
+  margin-top: 16px;
+}
+
+.cores-heading {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin: 12px 0 6px;
+}
+
+.rate-box {
+  border-left: 4px solid var(--accent);
+  padding: 4px 12px;
+}
+
+.rate-value {
+  font-size: 2rem;
+  font-weight: 700;
+  margin-right: 8px;
+}
+
+.rate-label {
+  color: var(--text-secondary);
+}
+
+.rate-sub {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+.core-slots {
+  list-style: none;
+  margin: 0 0 12px;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 8px;
+}
+
+.core-slot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  border: 2px solid var(--text-secondary);
+  border-radius: 8px;
+  padding: 6px 8px;
+  min-height: 60px;
+}
+
+.core-slot.empty {
+  border-style: dashed;
+  border-color: var(--grid);
+}
+
+.core-name {
+  flex-basis: 100%;
+  font-size: 0.75rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.core-doing {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.last-round {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-size: 0.85rem;
+}
+
+.last-round li {
+  padding: 4px 0;
+  border-bottom: 1px solid var(--grid);
+}
+
+.violation-inline {
+  margin: 8px 0 0;
+  color: var(--text);
+  font-weight: 600;
+}
+
+.violation-inline [aria-hidden="true"] {
+  color: var(--bad);
+}
+
 .model-note {
   font-size: 0.85rem;
 }

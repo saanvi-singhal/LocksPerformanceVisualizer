@@ -65,7 +65,7 @@ const noLock = {
   title: "NoLock",
   broken: true,
   minThreads: 2,
-  maxThreads: 4,
+  maxThreads: 8,
   notice: "Several threads walk into the critical section together. Watch two threads read the same " +
     "counter value into tmp: both write back the same number, so one increment is lost.",
   init: () => ({}),
@@ -90,7 +90,7 @@ const tasLock = {
   name: "tas",
   title: "TasSpinLock",
   minThreads: 2,
-  maxThreads: 4,
+  maxThreads: 8,
   notice: "Every waiting step is a write (the exchange), even when the lock is taken. When the lock is " +
     "released, whichever thread happens to step next gets it: there is no queue, so a thread can lose many times in a row.",
   init: () => ({ locked: false }),
@@ -128,7 +128,7 @@ const ticketLock = {
   name: "ticket",
   title: "TicketLock",
   minThreads: 2,
-  maxThreads: 4,
+  maxThreads: 8,
   notice: "Threads enter strictly in ticket order: compare my_ticket with now_serving. First come, first " +
     "served, so it is fair; but if the thread holding the next ticket does not run, nobody else can enter.",
   init: () => ({ next_ticket: 0, now_serving: 0 }),
@@ -240,7 +240,7 @@ const ttasLock = {
   name: "ttas",
   title: "TtasSpinLock",
   minThreads: 2,
-  maxThreads: 4,
+  maxThreads: 8,
   notice: "Waiting threads only READ locked on line 1. When it looks free, several threads can see that " +
     "at once and all try the exchange on line 2; only one gets back false, the others go back to reading.",
   init: () => ({ locked: false }),
@@ -290,7 +290,7 @@ const bakeryLock = {
   name: "bakery",
   title: "BakeryLock",
   minThreads: 2,
-  maxThreads: 4,
+  maxThreads: 8,
   notice: "Two threads choosing at the same time can get the SAME number; the tie is broken by thread id " +
     "(lower id first). choosing[j] makes a thread wait until j has finished picking, so it never compares " +
     "against a half-chosen number.",
@@ -394,7 +394,7 @@ const semaphoreLock = {
   name: "semaphore",
   title: "SemaphoreLock",
   minThreads: 2,
-  maxThreads: 4,
+  maxThreads: 8,
   sleeps: true,   // waiting threads sleep (the page shows a "sleeping" lane)
   notice: "A thread that finds value = 0 goes to SLEEP: it joins the queue and leaves the runnable list, " +
     "so the scheduler cannot pick it and it uses no CPU. sem_post adds one to value and wakes the first " +
@@ -441,7 +441,7 @@ const mutexLock = {
   name: "mutex",
   title: "MutexLock",
   minThreads: 2,
-  maxThreads: 4,
+  maxThreads: 8,
   sleeps: true,
   notice: "Like the semaphore, waiters sleep instead of spinning. The mutex also has an owner: only the " +
     "thread that locked it unlocks it. A woken thread has to try again, and another thread may take the " +
@@ -488,7 +488,7 @@ const atomicCounter = {
   name: "atomic",
   title: "atomic (no lock)",
   minThreads: 2,
-  maxThreads: 4,
+  maxThreads: 8,
   notice: "There is no lock: read, add and write happen in ONE indivisible fetch_add step, so no update can " +
     "be lost and nobody ever waits. This only works for a single counter, not for a longer critical section.",
   init: () => ({}),

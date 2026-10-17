@@ -4,6 +4,7 @@
 // draw the same sticky navigation bar, with these tabs.
 import { ResultsView } from "./views/ResultsView.jsx";
 import { SimulatorView } from "./views/SimulatorView.jsx";
+import { CoresView } from "./views/CoresView.jsx";
 import { ThemeToggle } from "./components/ThemeToggle.jsx";
 import { useHashRoute, useThemeChoice } from "./hooks.js";
 
@@ -23,6 +24,9 @@ export default function App() {
     right: <ThemeToggle theme={themeName} onChange={setThemeName} />,
   };
 
+  if (route.view === "simulator" && route.params.view === "cores") {
+    return <CoresView themeName={themeName} nav={nav} params={route.params} />;
+  }
   if (route.view === "simulator") {
     return <SimulatorView themeName={themeName} nav={nav} params={route.params} />;
   }
