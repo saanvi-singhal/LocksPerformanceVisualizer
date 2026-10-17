@@ -7,7 +7,7 @@
 //     available by hovering or by colour.
 import { useState } from "react";
 import {
-  CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis,
+  CartesianGrid, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from "recharts";
 
 import { BROKEN_LOCKS, LOCK_MARKERS, lockLabel } from "../locks.js";
@@ -28,9 +28,11 @@ import { LegendSwatch, Marker } from "./Marker.jsx";
 //   footnote   text shown under the chart when such a point exists
 //   hidden     locks the viewer switched off (shared by all charts)
 //   onToggle   called with a lock name when its legend entry is clicked
+//   highlightX (optional) x value to mark with a vertical line (the thread
+//              count chosen with the slider)
 export function LockLineChart({
   rows, locks, colors, theme, xLabel, title, caption, format, minY, missingText, footnote,
-  hidden, onToggle,
+  hidden, onToggle, highlightX,
 }) {
   const [showTable, setShowTable] = useState(false);
 
@@ -79,6 +81,9 @@ export function LockLineChart({
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={rows} margin={{ top: 8, right: 12, bottom: 28, left: 8 }}>
             <CartesianGrid stroke={theme.grid} vertical={false} />
+            {highlightX !== undefined && (
+              <ReferenceLine x={highlightX} stroke={theme.muted} strokeWidth={1.5} />
+            )}
             <XAxis
               dataKey="x"
               stroke={theme.axis}

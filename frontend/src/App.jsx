@@ -121,7 +121,7 @@ export default function App() {
     (row) => row.cs === cs && (showBroken || !BROKEN_LOCKS.includes(row.lock)) && !hiddenLocks.includes(row.lock)
   );
 
-  const tiles = summaryTiles(data, value, workingLocks, baseThreads);
+  const tiles = summaryTiles(data, value, workingLocks, opThreads, cs, threadLabel);
   const oversubNote = threadLabel(oversubThreads) + " = 2 × CPUs (oversubscribed), run with fewer iterations per thread.";
 
   return (
@@ -150,6 +150,8 @@ export default function App() {
           ))}
         </div>
         <p className="caption">
+          Tiles follow the thread count and critical section chosen under Performance (now:{" "}
+          {threadLabel(opThreads)} threads, {cs} critical section).
           Medians over 5 runs per combination. Runs stop as soon as the first thread finishes its
           iterations (the "fairness window"), so locks are compared by rate (ops/s), not by total time.
         </p>
@@ -196,11 +198,18 @@ export default function App() {
               {data.cs_lengths.map((c) => <option key={c} value={c}>{c}</option>)}
             </select>
           </label>
-          <label>
-            Threads (time per operation)
-            <select value={opThreads} onChange={(e) => setOpThreads(Number(e.target.value))}>
-              {threadCounts.map((t) => <option key={t} value={t}>{threadLabel(t)}</option>)}
-            </select>
+          <label className="slider">
+            Threads: <strong>{threadLabel(opThreads)}</strong>
+            {/* The slider moves through the measured thread counts (1, 2, 4, ...). */}
+            <input
+              type="range"
+              min={0}
+              max={threadCounts.length - 1}
+              step={1}
+              value={threadCounts.indexOf(opThreads)}
+              onChange={(e) => setOpThreads(threadCounts[Number(e.target.value)])}
+              aria-valuetext={threadLabel(opThreads) + " threads"}
+            />
           </label>
           <label className="checkbox">
             <input type="checkbox" checked={showBroken} onChange={(e) => setShowBroken(e.target.checked)} />
@@ -212,7 +221,10 @@ export default function App() {
             </button>
           )}
         </div>
-        <p className="caption">Click a lock in any legend to hide or show it on every chart.</p>
+        <p className="caption">
+          The thread count and critical section chosen here also set the summary tiles at the top.
+          Click a lock in any legend to hide or show it on every chart.
+        </p>
 
         <div className="chart-grid">
           <LockLineChart
@@ -224,6 +236,7 @@ export default function App() {
             theme={theme}
             xLabel="threads"
             format={(v) => shortNumber(v) + " ops/s"}
+            highlightX={threadLabel(opThreads)}
             hidden={hiddenLocks}
             onToggle={toggleLock}
           />
@@ -242,6 +255,7 @@ export default function App() {
             xLabel="threads"
             minY={1}
             format={(v) => v.toFixed(v >= 10 ? 0 : 2)}
+            highlightX={threadLabel(opThreads)}
             hidden={hiddenLocks}
             onToggle={toggleLock}
           />
@@ -338,8 +352,9 @@ function SweepFooter({ sweep, generated, source }) {
   );
 }
 
-// The four headline numbers at the top of the page.
-function summaryTiles(data, value, workingLocks, baseThreads) {
+// The four headline numbers at the top of the page, for the thread count
+// and critical-section length chosen under Performance.
+function summaryTiles(data, value, workingLocks, threads, cs, threadLabel) {
   const realLocks = workingLocks.filter((lock) => lock !== "atomic");
 
   // How many working locks were correct in every run.
@@ -349,22 +364,25 @@ function summaryTiles(data, value, workingLocks, baseThreads) {
     if (rows.length > 0 && rows.every((row) => row.correct_runs === row.runs)) allCorrect++;
   }
 
-  // Fastest and fairest real lock at one thread per CPU, empty critical section.
+  // Fastest and fairest real lock at the chosen thread count and cs length.
+  // With 1 thread every lock is trivially fair, so "fairest" needs 2 or more.
   let fastest = null;
   let fairest = null;
   for (const lock of realLocks) {
-    const ops = value(lock, baseThreads, "empty", "ops_per_sec");
-    const fair = value(lock, baseThreads, "empty", "fairness_ratio");
+    const ops = value(lock, threads, cs, "ops_per_sec");
+    const fair = value(lock, threads, cs, "fairness_ratio");
     if (ops != null && (fastest === null || ops > fastest.ops)) fastest = { lock, ops };
-    if (fair != null && (fairest === null || fair < fairest.fair)) fairest = { lock, fair };
+    if (threads > 1 && fair != null && (fairest === null || fair < fairest.fair)) fairest = { lock, fair };
   }
 
-  // Biggest loss when oversubscribed (empty critical section).
+  // Biggest loss when oversubscribed, for the chosen cs length.
   let worst = null;
   for (const row of data.oversubscription.rows) {
-    if (row.cs !== "empty" || BROKEN_LOCKS.includes(row.lock)) continue;
+    if (row.cs !== cs || BROKEN_LOCKS.includes(row.lock)) continue;
     if (worst === null || row.retained_percent < worst.retained_percent) worst = row;
   }
+
+  const where = threadLabel(threads) + " threads, " + cs + " critical section";
 
   return [
     {
@@ -373,20 +391,22 @@ function summaryTiles(data, value, workingLocks, baseThreads) {
       note: "correct in every run; none and peterson_relaxed fail as intended",
     },
     {
-      label: "Fastest lock at " + baseThreads + " threads",
+      label: "Fastest lock",
       value: fastest ? lockLabel(fastest.lock) : "–",
-      note: fastest ? shortNumber(fastest.ops) + " ops/s, empty critical section" : "",
+      note: fastest ? shortNumber(fastest.ops) + " ops/s at " + where : "no data at " + where,
     },
     {
-      label: "Fairest lock at " + baseThreads + " threads",
+      label: "Fairest lock",
       value: fairest ? lockLabel(fairest.lock) : "–",
-      note: fairest ? "fairness ratio " + fairest.fair.toFixed(3) + " (1 = perfectly fair)" : "",
+      note: fairest
+        ? "fairness ratio " + fairest.fair.toFixed(3) + " (1 = perfectly fair) at " + where
+        : "needs 2 or more threads",
     },
     {
       label: "Worst when oversubscribed",
       value: worst ? lockLabel(worst.lock) : "–",
       note: worst ? "keeps " + worst.retained_percent.toPrecision(2) + "% of its throughput at " +
-        data.oversubscription.oversub_threads + " threads" : "",
+        data.oversubscription.oversub_threads + " threads, " + cs + " critical section" : "",
     },
   ];
 }
