@@ -2,6 +2,33 @@
 // Small React hooks shared by the whole page.
 import { useEffect, useState } from "react";
 
+// Reads the URL hash as a simple route, without a router library:
+//   "#/results"                         -> { view: "results", params: {} }
+//   "#/simulator?lock=tas&threads=3"    -> { view: "simulator",
+//                                            params: { lock: "tas", threads: "3" } }
+// Anything else counts as "results".
+export function parseHash(hash) {
+  const text = hash.replace(/^#/, "");
+  const parts = text.split("?");
+  const path = parts[0];
+  const params = {};
+  new URLSearchParams(parts[1] || "").forEach((value, key) => {
+    params[key] = value;
+  });
+  return { view: path === "/simulator" ? "simulator" : "results", params: params };
+}
+
+// The current route, updated whenever the hash changes (links, back button).
+export function useHashRoute() {
+  const [route, setRoute] = useState(() => parseHash(window.location.hash));
+  useEffect(() => {
+    const onChange = () => setRoute(parseHash(window.location.hash));
+    window.addEventListener("hashchange", onChange);
+    return () => window.removeEventListener("hashchange", onChange);
+  }, []);
+  return route;
+}
+
 const THEME_KEY = "theme";
 
 // The light/dark theme. Starts from the viewer's saved choice, or from the

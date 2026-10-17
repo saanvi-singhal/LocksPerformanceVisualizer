@@ -14,7 +14,9 @@ import { useReducedMotion } from "../hooks.js";
 //   activeTab id of the current view
 //   sections  [{ id, label }]  ids of the <section> elements to link to
 //   right     extra controls shown at the right end
-export function NavBar({ tabs, activeTab, sections, right }) {
+//   notice    (optional) a label shown in the bar on every screen, e.g.
+//             "Illustration of the algorithm, not measured data"
+export function NavBar({ tabs, activeTab, sections, right, notice }) {
   const reduced = useReducedMotion();
   const [current, setCurrent] = useState(sections.length > 0 ? sections[0].id : null);
 
@@ -63,6 +65,9 @@ export function NavBar({ tabs, activeTab, sections, right }) {
         </ul>
         <div className="navbar-right">{right}</div>
       </div>
+      {notice && (
+        <p className="navbar-notice">{notice}</p>
+      )}
       {sections.length > 0 && (
         <ul className="navbar-sections" aria-label="Sections">
           {sections.map((s) => (
