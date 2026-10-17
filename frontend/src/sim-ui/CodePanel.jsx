@@ -2,7 +2,7 @@
 // The lock's pseudo-code, one numbered line per step. Every thread's chip
 // sits on the line it will run next, and the line gets a bar in that
 // thread's colour, so you can see where each thread is.
-import { DONE } from "../sim/engine.js";
+import { DONE, SLEEPING } from "../sim/engine.js";
 import { ThreadChip } from "./ThreadChip.jsx";
 
 const SECTION_TITLES = {
@@ -32,7 +32,14 @@ export function CodePanel({ program, sim, threadColors }) {
                 <span className="code-number">{index + 1}</span>
                 <code className="code-text">{line.code}</code>
                 <span className="code-chips">
-                  {here.map((t) => <ThreadChip key={t.id} tid={t.id} color={threadColors[t.id]} />)}
+                  {here.map((t) => (
+                    <ThreadChip
+                      key={t.id}
+                      tid={t.id}
+                      color={threadColors[t.id]}
+                      note={t.status === SLEEPING ? "asleep" : undefined}
+                    />
+                  ))}
                 </span>
               </div>
             </li>

@@ -783,6 +783,24 @@ section {
   align-self: center;
 }
 
+/* "What to notice" box for the chosen lock. */
+.sim-notice-box {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 16px;
+  margin-top: 16px;
+}
+
+.sim-notice-box h3 {
+  font-size: 0.95rem;
+}
+
+.sim-notice-box p {
+  margin: 4px 0 0;
+  color: var(--text-secondary);
+}
+
 .sim-explain {
   font-size: 1.05rem;
   background: var(--surface);
@@ -909,16 +927,11 @@ section {
 }
 
 /* Thread lanes */
+/* As many lanes per row as fit (4 or 5 on a wide screen, 2 on a phone). */
 .lanes {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
   gap: 8px;
-}
-
-@media (max-width: 480px) {
-  .lanes {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
 }
 
 .lane {

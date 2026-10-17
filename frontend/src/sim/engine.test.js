@@ -6,8 +6,8 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 
 import {
-  createSim, expectedCounter, isFinished, runToEnd, scheduleStep, step,
-  RANDOM, ROUND_ROBIN, IN_CS,
+  createSim, expectedCounter, isFinished, runToEnd, runnableThreads, scheduleStep, step,
+  RANDOM, ROUND_ROBIN, IN_CS, SLEEPING, WAITING,
 } from "./engine.js";
 import { LOCK_PROGRAMS } from "./programs.js";
 
@@ -59,6 +59,40 @@ test("every correct lock reaches the right counter with no violation", () => {
       const rr = runToEnd(createSim({ lock: lock.name, threads: threads, iterations: 3 }), ROUND_ROBIN);
       assert.equal(rr.shared.counter, expectedCounter(rr), lock.name + " round robin counter is wrong");
     }
+  }
+});
+
+test("the correct-lock test above covers every new lock", () => {
+  const correct = Object.values(LOCK_PROGRAMS).filter((lock) => !lock.broken).map((lock) => lock.name);
+  for (const name of ["mutex", "semaphore", "tas", "ttas", "ticket", "peterson", "bakery", "atomic"]) {
+    assert.ok(correct.includes(name), name + " is not tested as a correct lock");
+  }
+});
+
+for (const name of ["semaphore", "mutex"]) {
+  test(name + ": a waiting thread sleeps, is not runnable, and is woken by unlock", () => {
+    let sim = createSim({ lock: name, threads: 2, iterations: 1 });
+    sim = step(sim, 0);                       // T0 takes the lock
+    assert.equal(sim.threads[0].status, IN_CS);
+    sim = step(sim, 1);                       // T1 finds it taken and sleeps
+    assert.equal(sim.threads[1].status, SLEEPING);
+    assert.deepEqual(runnableThreads(sim), [0]);
+    const before = sim.stepCount;
+    sim = step(sim, 1);                       // a sleeping thread cannot step
+    assert.equal(sim.stepCount, before);
+    for (let i = 0; i < 4; i++) sim = step(sim, 0);   // T0: read, add, write, unlock
+    assert.equal(sim.threads[1].status, WAITING);    // woken by unlock
+    sim = runToEnd(sim, ROUND_ROBIN);
+    assert.ok(isFinished(sim));
+    assert.equal(sim.shared.counter, 2);
+  });
+}
+
+test("atomic: the increment is one step and never loses an update", () => {
+  for (let seed = 1; seed <= 200; seed++) {
+    const sim = runToEnd(createSim({ lock: "atomic", threads: 4, iterations: 5, seed: seed }), RANDOM);
+    assert.equal(sim.shared.counter, 20);
+    assert.equal(sim.log.length, 20);   // one step per increment
   }
 });
 

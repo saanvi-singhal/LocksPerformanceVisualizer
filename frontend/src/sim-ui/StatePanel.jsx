@@ -39,7 +39,14 @@ export function StatePanel({ sim, threadColors }) {
             <div key={name} className="var-row">
               <dt><code>{name}</code></dt>
               <dd>
-                {Array.isArray(value) ? (
+                {Array.isArray(value) && value.length === 0 ? (
+                  <span
+                    key={changed.includes(name) ? sim.stepCount : 0}
+                    className={changed.includes(name) ? "var-cell changed" : "var-cell"}
+                  >
+                    (empty)
+                  </span>
+                ) : Array.isArray(value) ? (
                   <span className="var-array">
                     {value.map((v, i) => {
                       const isChanged = changed.includes(name + "[" + i + "]");

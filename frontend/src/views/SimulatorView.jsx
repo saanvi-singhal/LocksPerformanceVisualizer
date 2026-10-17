@@ -12,7 +12,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { NavBar } from "../components/NavBar.jsx";
 import {
-  getProgram, isFinished, scheduleStep, step, MANUAL, RANDOM, ROUND_ROBIN, DONE,
+  getProgram, isFinished, scheduleStep, step, MANUAL, RANDOM, ROUND_ROBIN, DONE, SLEEPING,
 } from "../sim/engine.js";
 import { LOCK_PROGRAMS } from "../sim/programs.js";
 import { THREAD_COLORS } from "../theme.js";
@@ -222,10 +222,10 @@ export function SimulatorView({ themeName, nav, params }) {
                   type="button"
                   className="sim-button thread-button"
                   style={{ borderColor: threadColors[t.id] }}
-                  disabled={t.status === DONE}
+                  disabled={t.status === DONE || t.status === SLEEPING}
                   onClick={() => runThread(t.id)}
                 >
-                  Run T{t.id} next
+                  {t.status === SLEEPING ? "T" + t.id + " is asleep" : "Run T" + t.id + " next"}
                 </button>
               ))}
               {script && <span className="caption">Replaying {script.length} recorded steps: use Step or Auto-run.</span>}
@@ -239,6 +239,11 @@ export function SimulatorView({ themeName, nav, params }) {
             </p>
           )}
         </section>
+
+        <aside className="sim-notice-box" aria-label="What to notice">
+          <h3>What to notice: {lock.title}</h3>
+          <p>{lock.notice}</p>
+        </aside>
 
         {latestViolation && (
           <ViolationBanner violation={latestViolation} count={sim.violations.length} threadColors={threadColors} />
@@ -254,7 +259,7 @@ export function SimulatorView({ themeName, nav, params }) {
         <section id="sim-run" className="sim-grid" aria-label="Simulation state">
           <CodePanel program={program} sim={sim} threadColors={threadColors} />
           <div className="sim-column">
-            <ThreadLanes sim={sim} threadColors={threadColors} />
+            <ThreadLanes sim={sim} threadColors={threadColors} showSleeping={lock.sleeps === true} />
             <StatePanel sim={sim} threadColors={threadColors} />
           </div>
         </section>
