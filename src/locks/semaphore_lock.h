@@ -1,51 +1,79 @@
 // semaphore_lock.h
 // SemaphoreLock: a binary POSIX semaphore (sem_t) used as a lock.
 //
-// TODO (Person B): implement the semaphore lock.
+// A semaphore is a counter that the kernel helps manage. We start it at 1,
+// meaning "unlocked":
+//   - lock():   sem_wait, the P / wait operation. If the value is 1, it
+//               becomes 0 and we enter. If it is already 0, the thread is put
+//               to sleep until another thread calls sem_post.
+//   - unlock(): sem_post, the V / signal operation. It sets the value back to
+//               1 and wakes one sleeping waiter, if there is one.
+// Because the value is only ever 0 or 1, at most one thread is inside the
+// critical section: a "binary semaphore".
 //
-// What it must do:
-//   - Hold one sem_t (from <semaphore.h>).
-//   - Constructor: sem_init(&sem, 0, 1)  -> not shared between processes,
-//                  initial value 1 (meaning "unlocked").
-//   - Destructor:  sem_destroy(&sem).
-//   - lock(tid):   sem_wait(&sem)  (the P / wait operation; sleeps if the
-//                  value is 0, otherwise decrements it).
-//   - unlock(tid): sem_post(&sem)  (the V / signal operation; increments the
-//                  value and wakes one sleeping waiter).
-//   - Note for the report: waiters sleep instead of spinning, like a mutex.
+// sem_wait can return early with the error EINTR when a signal arrives while
+// the thread is asleep. That does NOT mean we got the lock, so we simply call
+// sem_wait again.
 //
-// Until it is implemented this stub behaves like NoLock (no mutual
-// exclusion) and prints a warning the first time it is used.
+// Memory ordering: there are no std::atomic operations here. POSIX requires
+// sem_wait and sem_post to "synchronize memory", so they act as a full
+// barrier: everything the previous owner wrote before sem_post is visible to
+// the next owner after its sem_wait returns.
+//
+// Note for the report: waiters sleep instead of spinning, like a mutex. This
+// costs a system call when there is contention, but it does not waste CPU
+// time, which matters when there are more threads than cores.
+//
+// Owner: Person B.
 
 #ifndef SEMAPHORE_LOCK_H
 #define SEMAPHORE_LOCK_H
 
-#include <atomic>
-#include <iostream>
+#include <semaphore.h>
+
+#include <cerrno>
+#include <cstdio>
+#include <cstdlib>
 
 #include "lock.h"
 
 class SemaphoreLock : public Lock {
 public:
-    explicit SemaphoreLock(int max_threads) : Lock(max_threads) {}
+    explicit SemaphoreLock(int max_threads) : Lock(max_threads) {
+        // Second argument 0: shared between the threads of this process only.
+        // Third argument 1: initial value, meaning "unlocked".
+        if (sem_init(&sem_, 0, 1) != 0) {
+            std::perror("sem_init");
+            std::exit(1);
+        }
+    }
 
-    void lock(int /*tid*/) override { warn_not_implemented(); }
+    ~SemaphoreLock() override {
+        sem_destroy(&sem_);
+    }
 
-    void unlock(int /*tid*/) override {}
+    // The thread id is not needed: the semaphore does not care who calls it.
+    void lock(int /*tid*/) override {
+        // Retry if a signal interrupted the wait (errno == EINTR).
+        while (sem_wait(&sem_) != 0) {
+            if (errno != EINTR) {
+                std::perror("sem_wait");
+                std::exit(1);
+            }
+        }
+    }
+
+    void unlock(int /*tid*/) override {
+        if (sem_post(&sem_) != 0) {
+            std::perror("sem_post");
+            std::exit(1);
+        }
+    }
 
     const char* name() override { return "semaphore"; }
 
 private:
-    // exchange(true) returns the old value, so only the very first caller
-    // sees false and prints the warning.
-    void warn_not_implemented() {
-        if (!warned_.exchange(true)) {
-            std::cerr << "WARNING: SemaphoreLock is NOT IMPLEMENTED yet; "
-                         "it behaves like NoLock (no mutual exclusion)!\n";
-        }
-    }
-
-    std::atomic<bool> warned_{false};
+    sem_t sem_;
 };
 
 #endif // SEMAPHORE_LOCK_H
