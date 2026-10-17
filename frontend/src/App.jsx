@@ -12,6 +12,7 @@ import { CorrectnessTable } from "./components/CorrectnessTable.jsx";
 import { OversubChart } from "./components/OversubChart.jsx";
 import { LegendSwatch } from "./components/Marker.jsx";
 import { CompareLocks } from "./components/CompareLocks.jsx";
+import { CountUp } from "./components/CountUp.jsx";
 
 // Chart colours that are not lock colours (axes, grid, surface, text).
 const THEME_COLORS = {
@@ -146,6 +147,7 @@ export default function App() {
             <div className="tile" key={tile.label}>
               <div className="tile-label">{tile.label}</div>
               <div className="tile-value">{tile.value}</div>
+              {tile.number && <div className="tile-number">{tile.number}</div>}
               <div className="tile-note">{tile.note}</div>
             </div>
           ))}
@@ -396,29 +398,32 @@ function summaryTiles(data, value, workingLocks, threads, cs, threadLabel) {
 
   const where = threadLabel(threads) + " threads, " + cs + " critical section";
 
+  // Each tile: label, main value, an optional number line, and a note.
+  // Numbers use <CountUp>, which counts up to the value.
   return [
     {
       label: "Correct locks",
-      value: allCorrect + " of " + workingLocks.length,
+      value: <><CountUp value={allCorrect} format={(v) => String(Math.round(v))} /> of {workingLocks.length}</>,
+      number: null,
       note: "correct in every run; none and peterson_relaxed fail as intended",
     },
     {
       label: "Fastest lock",
       value: fastest ? lockLabel(fastest.lock) : "–",
-      note: fastest ? shortNumber(fastest.ops) + " ops/s at " + where : "no data at " + where,
+      number: fastest ? <><CountUp value={fastest.ops} format={shortNumber} /> ops/s</> : null,
+      note: fastest ? "at " + where : "no data at " + where,
     },
     {
       label: "Fairest lock",
       value: fairest ? lockLabel(fairest.lock) : "–",
-      note: fairest
-        ? "fairness ratio " + fairest.fair.toFixed(3) + " (1 = perfectly fair) at " + where
-        : "needs 2 or more threads",
+      number: fairest ? <>fairness ratio <CountUp value={fairest.fair} format={(v) => v.toFixed(3)} /></> : null,
+      note: fairest ? "1 = perfectly fair, at " + where : "needs 2 or more threads",
     },
     {
       label: "Worst when oversubscribed",
       value: worst ? lockLabel(worst.lock) : "–",
-      note: worst ? "keeps " + worst.retained_percent.toPrecision(2) + "% of its throughput at " +
-        data.oversubscription.oversub_threads + " threads, " + cs + " critical section" : "",
+      number: worst ? <><CountUp value={worst.retained_percent} format={(v) => v.toPrecision(2)} />% of throughput kept</> : null,
+      note: worst ? "at " + data.oversubscription.oversub_threads + " threads, " + cs + " critical section" : "",
     },
   ];
 }
