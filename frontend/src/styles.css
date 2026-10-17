@@ -801,6 +801,29 @@ section {
   color: var(--text-secondary);
 }
 
+/* Links between the views: "See how it works", "See measured results". */
+.card-link {
+  display: inline-block;
+  margin-top: 8px;
+  color: var(--accent);
+  font-size: 0.9rem;
+  min-height: 24px;
+}
+
+/* Note above the chart a Simulator link pointed to. */
+.from-sim {
+  border-left: 4px solid var(--accent);
+  background: var(--surface);
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-size: 0.9rem;
+}
+
+/* Leave room for the sticky bar when a link scrolls to a chart. */
+.chart-card {
+  scroll-margin-top: 110px;
+}
+
 /* Simulator sub-tabs: Step by step | Cores and oversubscription */
 .sim-mode-tabs {
   display: flex;

@@ -30,5 +30,5 @@ export default function App() {
   if (route.view === "simulator") {
     return <SimulatorView themeName={themeName} nav={nav} params={route.params} />;
   }
-  return <ResultsView themeName={themeName} nav={nav} />;
+  return <ResultsView themeName={themeName} nav={nav} params={route.params} />;
 }

@@ -222,6 +222,9 @@ export function CoresView({ themeName, nav, params }) {
             shows; here TAS slows down about as much as the ticket lock. The model shows the direction of
             the effect, not its size.
           </p>
+          <a className="card-link" href={"#/results?chart=oversub&lock=" + settings.lock}>
+            See measured results (oversubscription chart) <span aria-hidden="true">→</span>
+          </a>
         </aside>
 
         <section className={sims.b ? "cores-grid two" : "cores-grid"} aria-label="Cores simulation">

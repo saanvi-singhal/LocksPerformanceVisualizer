@@ -31,6 +31,13 @@ import { ViolationBanner } from "../sim-ui/ViolationBanner.jsx";
 
 export const SIM_NOTICE = "Illustration of the algorithm, not measured data";
 
+// The Results chart with the MEASURED data for a lock: the correctness
+// table for the two broken locks, the throughput chart for the others.
+function measuredResultsHash(lockName) {
+  const chart = lockName === "none" || lockName === "peterson_relaxed" ? "correctness" : "throughput";
+  return "#/results?chart=" + chart + "&lock=" + lockName;
+}
+
 const SIM_SECTIONS = [
   { id: "sim-controls", label: "Controls" },
   { id: "sim-run", label: "Run" },
@@ -307,6 +314,9 @@ export function SimulatorView({ themeName, nav, params }) {
         <aside className="sim-notice-box" aria-label="What to notice">
           <h3>What to notice: {lock.title}</h3>
           <p>{lock.notice}</p>
+          <a className="card-link" href={measuredResultsHash(settings.lock)}>
+            See measured results <span aria-hidden="true">→</span>
+          </a>
           {lock.storeBuffer && (
             <p className="model-note">
               <strong>This is a simplified model of x86 store buffering.</strong> Each thread's stores wait in

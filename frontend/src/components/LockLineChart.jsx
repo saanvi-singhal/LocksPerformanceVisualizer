@@ -32,9 +32,10 @@ import { LegendSwatch, Marker } from "./Marker.jsx";
 //              count chosen with the slider)
 //   exactFormat  function value -> string with the exact value, for the
 //              hover tooltip (the table keeps the shorter "format")
+//   id         (optional) element id, so a link can scroll to this chart
 export function LockLineChart({
   rows, locks, colors, theme, xLabel, title, caption, format, minY, missingText, footnote,
-  hidden, onToggle, highlightX, exactFormat,
+  hidden, onToggle, highlightX, exactFormat, id,
 }) {
   const [showTable, setShowTable] = useState(false);
 
@@ -51,7 +52,7 @@ export function LockLineChart({
   const axis = logTicks(values, minY);
 
   return (
-    <figure className="chart-card">
+    <figure className="chart-card" id={id}>
       <figcaption>
         <h3>{title}</h3>
         {caption && <p className="caption">{caption}</p>}

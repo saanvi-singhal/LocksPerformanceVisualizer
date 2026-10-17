@@ -16,6 +16,7 @@ import { CountUp } from "../components/CountUp.jsx";
 import { Reveal } from "../components/Reveal.jsx";
 import { NavBar } from "../components/NavBar.jsx";
 import { THEME_COLORS } from "../theme.js";
+import { useReducedMotion } from "../hooks.js";
 
 // Sections of the Results view, for the navigation bar. The ids match the
 // <Reveal id=...> sections below.
@@ -28,10 +29,21 @@ const RESULTS_SECTIONS = [
   { id: "section-machine", label: "Machine" },
 ];
 
+// "See measured results" links from the Simulator use #/results?chart=...&lock=...
+// This table says which element each "chart" value scrolls to.
+const CHART_TARGETS = {
+  throughput: "chart-throughput",
+  correctness: "section-correctness",
+  oversub: "section-oversub",
+};
+
 // Props:
 //   themeName  "light" or "dark"
 //   nav        props for the shared NavBar (tabs, active tab, theme switch)
-export function ResultsView({ themeName, nav }) {
+//   params     from the URL hash; chart and lock when coming from the Simulator
+export function ResultsView({ themeName, nav, params }) {
+  const reduced = useReducedMotion();
+  const fromSim = params && CHART_TARGETS[params.chart] ? params : null;
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
 
@@ -70,6 +82,29 @@ export function ResultsView({ themeName, nav }) {
       })
       .catch((e) => setError(String(e)));
   }, []);
+
+  // Coming from the Simulator: once the data is on screen, scroll to the
+  // matching measured chart.
+  const fromSimKey = fromSim ? fromSim.chart + "/" + fromSim.lock : "";
+  useEffect(() => {
+    if (!data || !fromSim) return;
+    const el = document.getElementById(CHART_TARGETS[fromSim.chart]);
+    if (el) {
+      el.scrollIntoView({ behavior: reduced ? "auto" : "smooth", block: "start" });
+    }
+  }, [data, fromSimKey]);
+
+  // The note shown above the chart the Simulator link pointed to.
+  function fromSimNote(chart) {
+    if (!fromSim || fromSim.chart !== chart) return null;
+    const lockName = LOCK_ORDER.includes(fromSim.lock) ? lockLabel(fromSim.lock) : "this lock";
+    return (
+      <p className="from-sim" role="status">
+        Measured results for <strong>{lockName}</strong>, from the "See measured results" link in the
+        Simulator. These numbers come from the real benchmark sweep, not from the simulation.
+      </p>
+    );
+  }
 
   if (error) {
     return (
@@ -195,6 +230,9 @@ export function ResultsView({ themeName, nav }) {
               </div>
               <h3>{info.title}</h3>
               <p>{info.text}</p>
+              <a className="card-link" href={"#/simulator?lock=" + info.lock}>
+                See how it works <span aria-hidden="true">→</span>
+              </a>
             </article>
           ))}
         </div>
@@ -207,6 +245,7 @@ export function ResultsView({ themeName, nav }) {
           over all three critical-section lengths. "–" means the lock does not support that thread
           count (Peterson needs exactly 2). With 1 thread even "none" is correct: there is nobody to race with.
         </p>
+        {fromSimNote("correctness")}
         <CorrectnessTable correctness={data.correctness} threadCounts={threadCounts} />
       </Reveal>
 
@@ -256,8 +295,10 @@ export function ResultsView({ themeName, nav }) {
           threadLabel={threadLabel}
         />
 
+        {fromSimNote("throughput")}
         <div className="chart-grid">
           <LockLineChart
+            id="chart-throughput"
             title={"Throughput vs threads (critical section: " + cs + ")"}
             caption={"All threads together, operations per second, log scale. Higher is better. " + oversubNote}
             rows={rowsByThreads("ops_per_sec", visibleLocks)}
@@ -314,6 +355,7 @@ export function ResultsView({ themeName, nav }) {
           has to wait whenever that thread is not running, so throughput collapses. Locks whose waiters
           sleep (mutex, semaphore) or where any running thread can take the lock (TAS, TTAS) degrade far less.
         </p>
+        {fromSimNote("oversub")}
         <OversubChart
           rows={oversubRows}
           colors={colors}
