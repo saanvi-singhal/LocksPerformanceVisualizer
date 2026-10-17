@@ -1,0 +1,4 @@
+Commit: cd2a7cf
+Date: 2026-10-17
+Iterations per thread: 1=100000 2=100000 4=100000 8=100000 16=100000 32=1000
+Runs per combination: 5
