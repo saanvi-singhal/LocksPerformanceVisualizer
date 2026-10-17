@@ -227,7 +227,7 @@ export default function App() {
             </select>
           </label>
           <label className="slider">
-            Threads: <strong>{threadLabel(opThreads)}</strong>
+            <span>Threads: <strong>{threadLabel(opThreads)}</strong></span>
             {/* The slider moves through the measured thread counts (1, 2, 4, ...). */}
             <input
               type="range"
