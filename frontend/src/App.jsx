@@ -13,6 +13,7 @@ import { OversubChart } from "./components/OversubChart.jsx";
 import { LegendSwatch } from "./components/Marker.jsx";
 import { CompareLocks } from "./components/CompareLocks.jsx";
 import { CountUp } from "./components/CountUp.jsx";
+import { Reveal } from "./components/Reveal.jsx";
 
 // Chart colours that are not lock colours (axes, grid, surface, text).
 const THEME_COLORS = {
@@ -140,7 +141,7 @@ export default function App() {
         <ThemeToggle />
       </header>
 
-      <section aria-labelledby="summary">
+      <Reveal id="section-summary" labelledBy="summary">
         <h2 id="summary">Summary</h2>
         <div className="tiles">
           {tiles.map((tile) => (
@@ -158,9 +159,9 @@ export default function App() {
           Medians over 5 runs per combination. Runs stop as soon as the first thread finishes its
           iterations (the "fairness window"), so locks are compared by rate (ops/s), not by total time.
         </p>
-      </section>
+      </Reveal>
 
-      <section aria-labelledby="locks">
+      <Reveal id="section-locks" labelledBy="locks">
         <h2 id="locks">The locks</h2>
         <div className="lock-grid">
           {LOCK_INFO.map((info) => (
@@ -179,9 +180,9 @@ export default function App() {
             </article>
           ))}
         </div>
-      </section>
+      </Reveal>
 
-      <section aria-labelledby="correctness">
+      <Reveal id="section-correctness" labelledBy="correctness">
         <h2 id="correctness">Correctness</h2>
         <p className="caption">
           Runs where the shared counter equals the number of lock acquisitions (no lost updates),
@@ -189,9 +190,9 @@ export default function App() {
           count (Peterson needs exactly 2). With 1 thread even "none" is correct: there is nobody to race with.
         </p>
         <CorrectnessTable correctness={data.correctness} threadCounts={threadCounts} />
-      </section>
+      </Reveal>
 
-      <section aria-labelledby="performance">
+      <Reveal id="section-performance" labelledBy="performance">
         <h2 id="performance">Performance</h2>
 
         <div className="filters" role="group" aria-label="Chart filters">
@@ -286,9 +287,9 @@ export default function App() {
             onToggle={toggleLock}
           />
         </div>
-      </section>
+      </Reveal>
 
-      <section aria-labelledby="oversub">
+      <Reveal id="section-oversub" labelledBy="oversub">
         <h2 id="oversub">Oversubscription</h2>
         <p className="caption">
           With more threads than CPUs, a lock that hands over to one specific next thread (ticket, bakery)
@@ -303,9 +304,9 @@ export default function App() {
           oversubThreads={oversubThreads}
           cs={cs}
         />
-      </section>
+      </Reveal>
 
-      <section aria-labelledby="machine">
+      <Reveal id="section-machine" labelledBy="machine">
         <h2 id="machine">Machine</h2>
         <dl className="machine">
           {Object.entries(data.machine.fields).map(([key, val]) => (
@@ -315,7 +316,7 @@ export default function App() {
             </div>
           ))}
         </dl>
-      </section>
+      </Reveal>
 
       <SweepFooter sweep={data.sweep} generated={data.generated} source={data.source} />
     </main>
