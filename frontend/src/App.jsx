@@ -11,6 +11,7 @@ import { LockLineChart } from "./components/LockLineChart.jsx";
 import { CorrectnessTable } from "./components/CorrectnessTable.jsx";
 import { OversubChart } from "./components/OversubChart.jsx";
 import { LegendSwatch } from "./components/Marker.jsx";
+import { CompareLocks } from "./components/CompareLocks.jsx";
 
 // Chart colours that are not lock colours (axes, grid, surface, text).
 const THEME_COLORS = {
@@ -225,6 +226,14 @@ export default function App() {
           The thread count and critical section chosen here also set the summary tiles at the top.
           Click a lock in any legend to hide or show it on every chart.
         </p>
+
+        <CompareLocks
+          locks={visibleLocks}
+          value={value}
+          threads={opThreads}
+          cs={cs}
+          threadLabel={threadLabel}
+        />
 
         <div className="chart-grid">
           <LockLineChart

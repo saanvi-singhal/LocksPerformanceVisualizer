@@ -251,6 +251,45 @@ code {
   min-height: 36px;
 }
 
+/* ---- Comparison sentence --------------------------------------------- */
+
+.compare {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+}
+
+.compare-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+}
+
+.compare-controls label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+.compare-controls select {
+  font: inherit;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 8px;
+  min-height: 36px;
+}
+
+.compare-sentence {
+  margin: 10px 0 0;
+  font-size: 1.05rem;
+}
+
 /* ---- Charts ----------------------------------------------------------- */
 
 .chart-grid {
