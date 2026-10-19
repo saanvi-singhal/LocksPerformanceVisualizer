@@ -260,7 +260,11 @@ code {
   gap: 12px;
 }
 
+/* A column, so "See how it works" (margin-top: auto) sits at the bottom of
+   every card, even when the cards in a row have texts of different length. */
 .lock-card {
+  display: flex;
+  flex-direction: column;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 10px;
@@ -270,7 +274,7 @@ code {
 .lock-card p {
   color: var(--text-secondary);
   font-size: 0.9rem;
-  margin: 6px 0 0;
+  margin: 6px 0 12px;
 }
 
 .lock-card-head {
@@ -590,7 +594,10 @@ code {
   padding: 0 16px;
 }
 
+/* The top row spans the whole window, with the title at the very left edge. */
 .navbar-row {
+  max-width: none;
+  padding-left: 0;
   display: flex;
   align-items: center;
   gap: 16px;
@@ -600,6 +607,7 @@ code {
 .navbar-brand {
   font-weight: 700;
   white-space: nowrap;
+  color: var(--text-secondary); /* same grey as the section links */
 }
 
 .theme-toggle {

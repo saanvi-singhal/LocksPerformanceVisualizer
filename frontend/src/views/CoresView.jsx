@@ -196,10 +196,13 @@ export function CoresView({ themeName, nav, params }) {
               <input type="range" min={1} max={30} value={speed} onChange={(e) => setSpeed(Number(e.target.value))} />
             </label>
             <button type="button" className="sim-button outlined after-speed" onClick={() => changeSettings({})}>Reset</button>
+          </div>
+          <div className="sim-control-row">
             <button type="button" className="sim-button" onClick={loadPreset}>
               Preset: ticket vs semaphore, 8 threads on 4 cores
             </button>
-            <a className="sim-link" href={settingsHash(settings)}>Link to these settings</a>
+            {/* Still a link (it holds the settings URL), styled as a button. */}
+            <a className="sim-button" href={settingsHash(settings)}>Link to these settings</a>
           </div>
           <p className="caption">
             The iterations selector of the step-by-step view does not apply here: threads loop for ever.
