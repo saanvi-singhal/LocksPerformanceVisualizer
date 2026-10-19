@@ -195,7 +195,7 @@ export function ResultsView({ themeName, nav, params }) {
       </header>
 
       <Reveal id="section-summary" labelledBy="summary">
-        <h2 id="summary">Summary</h2>
+        <h1 id="summary">Summary</h1>
         <div className="tiles">
           {tiles.map((tile) => (
             <div className="tile" key={tile.label}>
@@ -206,7 +206,7 @@ export function ResultsView({ themeName, nav, params }) {
             </div>
           ))}
         </div>
-        <p className="caption">
+        <p className="caption" style={{ marginTop: "24px" }}>
           Tiles follow the thread count and critical section chosen under Performance (now:{" "}
           {threadLabel(opThreads)} threads, {cs} critical section).
           Medians over 5 runs per combination. Runs stop as soon as the first thread finishes its
@@ -215,7 +215,7 @@ export function ResultsView({ themeName, nav, params }) {
       </Reveal>
 
       <Reveal id="section-locks" labelledBy="locks">
-        <h2 id="locks">The locks</h2>
+        <h1 id="locks">The locks</h1>
         <div className="lock-grid">
           {LOCK_INFO.map((info) => (
             <article className="lock-card" key={info.lock}>
@@ -239,7 +239,7 @@ export function ResultsView({ themeName, nav, params }) {
       </Reveal>
 
       <Reveal id="section-correctness" labelledBy="correctness">
-        <h2 id="correctness">Correctness</h2>
+        <h1 id="correctness">Correctness</h1>
         <p className="caption">
           Runs where the shared counter equals the number of lock acquisitions (no lost updates),
           over all three critical-section lengths. "–" means the lock does not support that thread
@@ -250,7 +250,7 @@ export function ResultsView({ themeName, nav, params }) {
       </Reveal>
 
       <Reveal id="section-performance" labelledBy="performance">
-        <h2 id="performance">Performance</h2>
+        <h1 id="performance">Performance</h1>
 
         <div className="filters" role="group" aria-label="Chart filters">
           <label>
@@ -349,7 +349,7 @@ export function ResultsView({ themeName, nav, params }) {
       </Reveal>
 
       <Reveal id="section-oversub" labelledBy="oversub">
-        <h2 id="oversub">Oversubscription</h2>
+        <h1 id="oversub">Oversubscription</h1>
         <p className="caption">
           With more threads than CPUs, a lock that hands over to one specific next thread (ticket, bakery)
           has to wait whenever that thread is not running, so throughput collapses. Locks whose waiters
@@ -367,7 +367,7 @@ export function ResultsView({ themeName, nav, params }) {
       </Reveal>
 
       <Reveal id="section-machine" labelledBy="machine">
-        <h2 id="machine">Machine</h2>
+        <h1 id="machine">Machine</h1>
         <dl className="machine">
           {Object.entries(data.machine.fields).map(([key, val]) => (
             <div key={key}>
@@ -467,7 +467,7 @@ function summaryTiles(data, value, workingLocks, threads, cs, threadLabel) {
       label: "Correct locks",
       value: <><CountUp value={allCorrect} format={(v) => String(Math.round(v))} /> of {workingLocks.length}</>,
       number: null,
-      note: "correct in every run; none and peterson_relaxed fail as intended",
+      note: "correct in every run;"<br>"none and peterson_relaxed fail as intended",
     },
     {
       label: "Fastest lock",

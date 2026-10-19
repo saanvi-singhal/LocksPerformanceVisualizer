@@ -98,7 +98,7 @@ body {
 }
 
 section {
-  margin-top: 40px;
+  margin-top: 60px;
 }
 
 h1 {
@@ -200,6 +200,9 @@ code {
 .theme-toggle[aria-checked="true"] .theme-toggle-knob {
   transform: translateX(14px);
   background: var(--accent);
+}
+.caption {
+  margin-top: 24px; /* Adjust pixel value as needed */
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -803,11 +806,23 @@ section {
 
 /* Links between the views: "See how it works", "See measured results". */
 .card-link {
-  display: inline-block;
-  margin-top: 8px;
-  color: var(--accent);
-  font-size: 0.9rem;
-  min-height: 24px;
+  font: inherit;
+  font-size: 0.85rem;
+  color: #ffffff;                  /* White text for contrast */
+  background-color: #000080;       /* Standard Navy Blue (or use #001f3f / #0f172a) */
+  border: 1px solid #000080;
+  border-radius: 6px;
+  padding: 6px 10px;
+  min-height: 32px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+.card-link:hover {
+  background-color: #000066;       /* Slightly darker blue on hover */
+  border-color: #000066;
 }
 
 /* Note above the chart a Simulator link pointed to. */

@@ -61,14 +61,14 @@ export const LOCK_INFO = [
   {
     lock: "mutex",
     kind: "Sleeping lock",
-    title: "MutexLock (std::mutex)",
-    text: "Wraps std::mutex. On Linux this is a pthread mutex built on a futex: " +
+    title: "MutexLock",
+    text: "Wraps mutex. On Linux this is a pthread mutex built on a futex: " +
       "a waiting thread is put to sleep by the kernel instead of spinning. The baseline.",
   },
   {
     lock: "semaphore",
     kind: "Sleeping lock",
-    title: "SemaphoreLock (POSIX sem_t)",
+    title: "SemaphoreLock",
     text: "A binary semaphore that starts at 1. sem_wait takes it (sleeping if it is 0, " +
       "retrying on EINTR) and sem_post gives it back and wakes one waiter.",
   },
