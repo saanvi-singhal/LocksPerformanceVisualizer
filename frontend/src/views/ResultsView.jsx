@@ -467,7 +467,7 @@ function summaryTiles(data, value, workingLocks, threads, cs, threadLabel) {
       label: "Correct locks",
       value: <><CountUp value={allCorrect} format={(v) => String(Math.round(v))} /> of {workingLocks.length}</>,
       number: null,
-      note: "correct in every run;"<br>"none and peterson_relaxed fail as intended",
+      note: <>correct in every run;<br />none and peterson_relaxed fail as intended</>,
     },
     {
       label: "Fastest lock",
