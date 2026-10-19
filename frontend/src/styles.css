@@ -148,6 +148,11 @@ code {
   max-width: 80ch;
 }
 
+/* A caption or footnote that may use the full width (no 80ch limit). */
+.full-width {
+  max-width: none;
+}
+
 .error {
   color: var(--bad);
 }

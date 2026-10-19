@@ -282,7 +282,7 @@ export function ResultsView({ themeName, nav, params }) {
             </button>
           )}
         </div>
-        <p className="caption">
+        <p className="caption full-width">
           The thread count and critical section chosen here also set the summary tiles at the top.
           Click a lock in any legend to hide or show it on every chart.
         </p>
@@ -335,6 +335,7 @@ export function ResultsView({ themeName, nav, params }) {
           <LockLineChart
             title={"Time per operation vs critical-section length (" + threadLabel(opThreads) + " threads)"}
             caption="Average wall time per lock acquisition in microseconds (1 ÷ throughput), log scale. Lower is better."
+            wideCaption
             rows={timeRows}
             locks={visibleLocks}
             colors={colors}

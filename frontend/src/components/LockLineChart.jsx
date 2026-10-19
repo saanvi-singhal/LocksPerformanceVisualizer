@@ -33,9 +33,10 @@ import { LegendSwatch, Marker } from "./Marker.jsx";
 //   exactFormat  function value -> string with the exact value, for the
 //              hover tooltip (the table keeps the shorter "format")
 //   id         (optional) element id, so a link can scroll to this chart
+//   wideCaption  (optional) true lets the caption use the full card width
 export function LockLineChart({
   rows, locks, colors, theme, xLabel, title, caption, format, minY, missingText, footnote,
-  hidden, onToggle, highlightX, exactFormat, id,
+  hidden, onToggle, highlightX, exactFormat, id, wideCaption,
 }) {
   const [showTable, setShowTable] = useState(false);
 
@@ -55,7 +56,7 @@ export function LockLineChart({
     <figure className="chart-card" id={id}>
       <figcaption>
         <h3>{title}</h3>
-        {caption && <p className="caption">{caption}</p>}
+        {caption && <p className={wideCaption ? "caption full-width" : "caption"}>{caption}</p>}
       </figcaption>
 
       {/* Each legend entry is a button: click to hide or show that lock on every chart. */}
@@ -133,7 +134,7 @@ export function LockLineChart({
         </ResponsiveContainer>
       </div>
 
-      {hasUndefined && footnote && <p className="footnote">{footnote}</p>}
+      {hasUndefined && footnote && <p className="footnote full-width">{footnote}</p>}
 
       <button className="link-button" onClick={() => setShowTable(!showTable)}>
         {showTable ? "Hide table" : "Show as table"}

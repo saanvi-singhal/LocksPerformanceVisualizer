@@ -31,7 +31,7 @@ export function OversubChart({ rows, colors, theme, baseThreads, oversubThreads,
     <figure className="chart-card">
       <figcaption>
         <h3>Throughput kept when oversubscribed (critical section: {cs})</h3>
-        <p className="caption">
+        <p className="caption full-width">
           ops/s at {oversubThreads} threads as a percentage of ops/s at {baseThreads} threads
           ({oversubThreads} threads = 2 × CPUs). 100% means no loss.
         </p>
