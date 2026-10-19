@@ -782,6 +782,32 @@ section {
   cursor: not-allowed;
 }
 
+/* A link that looks like a button ("Replay this run"). */
+a.sim-button {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+}
+
+/* Shows that a button is being pressed: an accent ring while the mouse
+   button (or key) is down. No movement, so it is fine with reduced motion. */
+.sim-button:active:not(:disabled) {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent);
+  filter: brightness(1.15);
+}
+
+/* Reset and Replay: a strong border (white in dark mode, black in light
+   mode) so they stand apart from the other buttons. */
+.sim-button.outlined {
+  border: 2px solid var(--text);
+}
+
+/* Extra space between the speed slider and the Reset button. */
+.sim-button.after-speed {
+  margin-left: 20px;
+}
+
 .thread-button {
   border-width: 2px;
 }

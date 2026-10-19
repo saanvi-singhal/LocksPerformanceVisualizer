@@ -169,8 +169,8 @@ export function SimulatorView({ themeName, nav, params }) {
       <NavBar {...nav} sections={SIM_SECTIONS} notice={SIM_NOTICE} />
       <main className="page sim-page">
         <header className="hero">
-          <p className="eyebrow">Simulator · {SIM_NOTICE}</p>
           <SimModeTabs active="step" />
+          <p className="eyebrow">Simulator · {SIM_NOTICE}</p>
           <h1>Step through a lock, one line at a time</h1>
           <p className="lede">
             Each thread runs lock(), then counter = counter + 1 split into read, add and write,
@@ -267,8 +267,11 @@ export function SimulatorView({ themeName, nav, params }) {
               Speed: {speed} step{speed === 1 ? "" : "s"}/s
               <input type="range" min={1} max={20} value={speed} onChange={(e) => setSpeed(Number(e.target.value))} />
             </label>
-            <button type="button" className="sim-button" onClick={reset}>Reset</button>
-            <a className="sim-link" href={replayHash(settings, sim)} onClick={replay}>Replay this run</a>
+            <button type="button" className="sim-button outlined after-speed" onClick={reset}>Reset</button>
+            {/* Still a link (it holds the replay URL), styled as a button. */}
+            <a className="sim-button primary outlined" href={replayHash(settings, sim)} onClick={replay}>
+              Replay this run
+            </a>
           </div>
 
           {settings.mode === MANUAL && (
@@ -301,7 +304,7 @@ export function SimulatorView({ themeName, nav, params }) {
             </div>
           )}
           {settings.mode !== MANUAL && (
-            <p className="caption">
+            <p className="caption full-width">
               {settings.mode === RANDOM
                 ? "The scheduler picks a random runnable thread for each step; the same seed always gives the same run."
                 : "The scheduler gives each runnable thread one step in turn."}

@@ -122,8 +122,8 @@ export function CoresView({ themeName, nav, params }) {
       <NavBar {...nav} sections={[]} notice={CORES_NOTICE} />
       <main className="page sim-page">
         <header className="hero">
-          <p className="eyebrow">Simulator · {CORES_NOTICE}.</p>
           <SimModeTabs active="cores" />
+          <p className="eyebrow">Simulator · {CORES_NOTICE}.</p>
           <h1>Cores and oversubscription</h1>
           <p className="lede">
             Every round, at most {settings.cores} of the {settings.threads} threads get a core and take
@@ -195,7 +195,7 @@ export function CoresView({ themeName, nav, params }) {
               Speed: {speed} round{speed === 1 ? "" : "s"}/s
               <input type="range" min={1} max={30} value={speed} onChange={(e) => setSpeed(Number(e.target.value))} />
             </label>
-            <button type="button" className="sim-button" onClick={() => changeSettings({})}>Reset</button>
+            <button type="button" className="sim-button outlined after-speed" onClick={() => changeSettings({})}>Reset</button>
             <button type="button" className="sim-button" onClick={loadPreset}>
               Preset: ticket vs semaphore, 8 threads on 4 cores
             </button>
