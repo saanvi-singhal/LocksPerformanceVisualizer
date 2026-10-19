@@ -166,7 +166,7 @@ export function SimulatorView({ themeName, nav, params }) {
 
   return (
     <>
-      <NavBar {...nav} sections={SIM_SECTIONS} notice={SIM_NOTICE} />
+      <NavBar {...nav} sections={SIM_SECTIONS} />
       <main className="page sim-page">
         <header className="hero">
           <SimModeTabs active="step" />

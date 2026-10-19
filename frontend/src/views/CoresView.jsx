@@ -119,7 +119,7 @@ export function CoresView({ themeName, nav, params }) {
 
   return (
     <>
-      <NavBar {...nav} sections={[]} notice={CORES_NOTICE} />
+      <NavBar {...nav} sections={[]} />
       <main className="page sim-page">
         <header className="hero">
           <SimModeTabs active="cores" />
