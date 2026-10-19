@@ -1,6 +1,6 @@
 # Lock Performance Comparison — Report (Person A sections)
 
-*VIT BCSE303L Operating Systems, Module 4 (Concurrency)*
+
 
 ---
 

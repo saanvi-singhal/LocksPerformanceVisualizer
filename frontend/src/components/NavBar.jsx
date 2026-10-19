@@ -49,7 +49,7 @@ export function NavBar({ tabs, activeTab, sections, right, notice }) {
   return (
     <nav className="navbar" aria-label="Main">
       <div className="navbar-row">
-        <span className="navbar-brand">Lock Bench</span>
+        <span className="navbar-brand">LOCK PERFORMANCE VISUALIZER</span>
         <ul className="navbar-tabs">
           {tabs.map((tab) => (
             <li key={tab.id}>

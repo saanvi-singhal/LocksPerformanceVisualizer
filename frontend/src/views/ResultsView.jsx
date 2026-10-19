@@ -184,8 +184,8 @@ export function ResultsView({ themeName, nav, params }) {
     <NavBar {...nav} sections={RESULTS_SECTIONS} />
     <main className="page">
       <header className="hero">
-        <p className="eyebrow">VIT BCSE303L Operating Systems · Module 4 · Concurrency</p>
-        <h1>Lock Bench: how mutual-exclusion locks behave under contention</h1>
+        <h1>Locks Performance Visualizer</h1>
+        <h3>How mutual-exclusion locks behave under contention</h3>
         <p className="lede">
           Every thread repeatedly takes a lock, increments one shared counter, does a little
           work and releases the lock. We measure whether the count is right (correctness), how many

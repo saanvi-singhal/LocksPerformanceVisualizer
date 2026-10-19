@@ -2,7 +2,7 @@
 
 Lock performance comparison: Peterson, Bakery, spinlocks, ticket lock, semaphore and mutex, measured under rising thread counts to show correctness, scalability and fairness.
 
-VIT BCSE303L Operating Systems, Module 4 (Concurrency). The full plan is in `docs/`.
+ The full plan is in `docs/`.
 
 ## Requirements
 
