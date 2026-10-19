@@ -52,7 +52,8 @@ export function NavBar({ tabs, activeTab, sections, right, notice }) {
         <span 
   className="navbar-brand" 
   style={{ 
-    fontFamily: 'Impact, "Arial Black", sans-serif', 
+    fontFamily: 'Georgia, "Times New Roman", Times, serif', 
+    fontSize: '1.8rem', 
     fontWeight: 'bold', 
     letterSpacing: '0.5px' 
   }}

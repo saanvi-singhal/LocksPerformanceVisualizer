@@ -465,25 +465,25 @@ function summaryTiles(data, value, workingLocks, threads, cs, threadLabel) {
   // Numbers use <CountUp>, which counts up to the value.
   return [
     {
-      label: "Correct locks",
+      label:<u>{"Correct locks"}</u>,
       value: <><CountUp value={allCorrect} format={(v) => String(Math.round(v))} /> of {workingLocks.length}</>,
       number: null,
       note: <>correct in every run;<br />none and peterson_relaxed fail as intended</>,
     },
     {
-      label: "Fastest lock",
+      label:<u>{"Fastest lock"}</u> ,
       value: fastest ? lockLabel(fastest.lock) : "–",
       number: fastest ? <><CountUp value={fastest.ops} format={shortNumber} /> ops/s</> : null,
       note: fastest ? "at " + where : "no data at " + where,
     },
     {
-      label: "Fairest lock",
+      label:<u>{"Fairest lock"}</u>,
       value: fairest ? lockLabel(fairest.lock) : "–",
       number: fairest ? <>fairness ratio <CountUp value={fairest.fair} format={(v) => v.toFixed(3)} /></> : null,
       note: fairest ? "1 = perfectly fair, at " + where : "needs 2 or more threads",
     },
     {
-      label: "Worst when oversubscribed",
+      label: <u>{"Worst when oversubscribed"}</u>,
       value: worst ? lockLabel(worst.lock) : "–",
       number: worst ? <><CountUp value={worst.retained_percent} format={(v) => v.toPrecision(2)} />% of throughput kept</> : null,
       note: worst ? "at " + data.oversubscription.oversub_threads + " threads, " + cs + " critical section" : "",

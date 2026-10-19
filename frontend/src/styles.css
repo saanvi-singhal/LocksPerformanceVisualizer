@@ -514,7 +514,7 @@ code {
 }
 
 .cell-expected {
-  color: var(--text-secondary);
+  color: orange;
 }
 
 .cell-na {
@@ -808,13 +808,17 @@ section {
   margin: 4px 0 0;
   color: var(--text-secondary);
 }
-
+.card {
+  display: flex;
+  flex-direction: column;
+  height: 100%; /* Ensures all cards match height */
+}
 /* Links between the views: "See how it works", "See measured results". */
 .card-link {
   font: inherit;
   font-size: 0.85rem;
-  color: #ffffff;                  /* White text for contrast */
-  background-color: #000080;       /* Standard Navy Blue (or use #001f3f / #0f172a) */
+  color: #ffffff;
+  background-color: #000080;
   border: 1px solid #000080;
   border-radius: 6px;
   padding: 6px 10px;
@@ -824,6 +828,10 @@ section {
   align-items: center;
   gap: 4px;
   transition: background-color 0.2s ease, border-color 0.2s ease;
+
+  /* Add these two properties: */
+  margin-top: auto;
+  align-self: flex-start;
 }
 .card-link:hover {
   background-color: #000066;       /* Slightly darker blue on hover */
